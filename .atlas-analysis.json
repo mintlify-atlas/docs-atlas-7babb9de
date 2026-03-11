@@ -1,0 +1,149 @@
+{
+  "projectType": "saas",
+  "projectName": "Clínica Vitalis",
+  "projectDescription": "Hospital staff management platform for efficient resource allocation, patient admissions, and medical appointment scheduling",
+  "theme": "mint",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "features"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/professionals",
+              "features/patients",
+              "features/appointments",
+              "features/work-schedules",
+              "features/specialties",
+              "features/social-works"
+            ]
+          },
+          {
+            "group": "Authentication",
+            "pages": [
+              "auth/overview",
+              "auth/user-management",
+              "auth/jwt-tokens"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/installation",
+              "deployment/configuration",
+              "deployment/database-setup"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/register",
+              "api/auth/login"
+            ]
+          },
+          {
+            "group": "Professionals",
+            "pages": [
+              "api/professionals/get-all",
+              "api/professionals/get-by-id",
+              "api/professionals/create",
+              "api/professionals/update"
+            ]
+          },
+          {
+            "group": "Patients",
+            "pages": [
+              "api/patients/get-all",
+              "api/patients/get-by-id",
+              "api/patients/create",
+              "api/patients/update"
+            ]
+          },
+          {
+            "group": "Appointments",
+            "pages": [
+              "api/appointments/get-all",
+              "api/appointments/get-by-id",
+              "api/appointments/create",
+              "api/appointments/update"
+            ]
+          },
+          {
+            "group": "Work Schedules",
+            "pages": [
+              "api/work-schedules/get-all",
+              "api/work-schedules/get-by-id",
+              "api/work-schedules/create",
+              "api/work-schedules/update"
+            ]
+          },
+          {
+            "group": "Specialties",
+            "pages": [
+              "api/specialties/get-all",
+              "api/specialties/get-by-id",
+              "api/specialties/create",
+              "api/specialties/update"
+            ]
+          },
+          {
+            "group": "Social Works",
+            "pages": [
+              "api/social-works/get-all",
+              "api/social-works/get-by-id",
+              "api/social-works/create",
+              "api/social-works/update"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Professional and patient management",
+    "Medical appointment scheduling with availability validation",
+    "Work schedule management for healthcare professionals",
+    "Specialty and social works (insurance) administration",
+    "JWT-based authentication with role-based access control",
+    "Smart filtering and intelligent resource allocation"
+  ],
+  "publicApiSurface": [
+    "POST /auth/register - User registration",
+    "POST /auth/login - User authentication",
+    "GET /professionals - List all professionals",
+    "POST /professionals - Create new professional",
+    "PATCH /professionals/:id - Update professional",
+    "GET /patients - List all patients",
+    "POST /patients - Create new patient",
+    "PATCH /patients/:id - Update patient",
+    "GET /appointments - List all appointments",
+    "POST /appointments - Create new appointment",
+    "PATCH /appointments/:id - Update appointment",
+    "GET /work_schedules - List all work schedules",
+    "POST /work_schedules - Create work schedule",
+    "PATCH /work_schedules/:id - Update work schedule",
+    "GET /specialities - List all specialties",
+    "POST /specialities - Create specialty",
+    "PATCH /specialities/:id - Update specialty",
+    "GET /socials_works - List all social works",
+    "POST /socials_works - Create social work",
+    "PATCH /socials_works/:id - Update social work"
+  ]
+}
