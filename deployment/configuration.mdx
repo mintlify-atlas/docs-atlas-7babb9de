@@ -20,6 +20,9 @@ PORT=3000
 
 # JWT Secret Key
 KEY_SECRET=your-super-secret-jwt-key-here
+
+# Admin Registration Key
+KEY_FOR_ADMIN=your-admin-registration-key-here
 ```
 
 <Note>
@@ -76,6 +79,36 @@ KEY_SECRET=your-super-secret-jwt-key-here
 
   # Using OpenSSL
   openssl rand -hex 64
+  ```
+</ParamField>
+
+#### KEY_FOR_ADMIN
+
+<ParamField path="KEY_FOR_ADMIN" type="string" required>
+  Secret key used to authorize admin user registration. When this key is provided in the `admin-key` header during registration, the user will be created with admin privileges.
+
+  **Usage in code**: `backend/controllers/auth.ts:22`
+
+  ```typescript
+  const adminKey = req.headers["admin-key"]
+
+  if (adminKey === process.env.KEY_FOR_ADMIN) {
+      user.rol = ROLES.admin
+  }
+  ```
+
+  **Security recommendations**:
+  - Use a long, random string (at least 32 characters)
+  - Keep this key highly confidential
+  - Only share with authorized personnel who need to create admin accounts
+  - Different from KEY_SECRET (use separate values)
+
+  **Usage**:
+  ```bash
+  curl -X POST http://localhost:3000/auth/register \
+    -H "Content-Type: application/json" \
+    -H "admin-key: your-admin-key-here" \
+    -d '{"name": "Admin", "surname": "User", "email": "admin@example.com", "password": "securepass"}'
   ```
 </ParamField>
 
