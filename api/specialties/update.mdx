@@ -1,0 +1,617 @@
+---
+title: 'Update Specialty'
+description: 'Update an existing medical specialty'
+api: 'PATCH /specialities/:id'
+---
+
+## Overview
+
+Updates an existing medical specialty in the system. Only administrators can update specialties.
+
+## Authentication & Authorization
+
+<Warning>
+  This endpoint requires both authentication AND administrator privileges.
+</Warning>
+
+**Required**: JWT token from an admin user
+
+**Middleware chain**:
+1. `validatorJWT` - Validates JWT token (backend/middlewares/validatorJWT.ts)
+2. `isAdmin` - Verifies user has admin role (backend/middlewares/validatorAdmin.ts)
+3. Validation checks:
+   - `check("name", "El nombre es obligatorio").not().isEmpty()` - Name is required
+   - `check("name").custom(existNameSpecialityById)` - Name must be unique (excluding current record)
+   - `check("state", "El estado es obligatorio").not().isEmpty()` - State is required
+4. `collectionErrors` - Handles validation errors
+
+**Authorization**: Admin role required. Non-admin users will receive a 401 or 403 error.
+
+## Endpoint
+
+```
+PATCH /specialities/:id
+```
+
+**Implementation**: `backend/controllers/speciality.ts:102`
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The unique identifier of the specialty to update.
+
+  **Validation**:
+  - Must be numeric
+  - Must correspond to an existing specialty
+
+  **Examples**:
+  - `1` - Updates specialty with ID 1
+  - `25` - Updates specialty with ID 25
+
+  **Validation source**: `backend/controllers/speciality.ts:110-115`
+</ParamField>
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  The updated name of the medical specialty. Must be unique across the system (excluding the current record).
+
+  **Validation**:
+  - Cannot be empty
+  - Must be unique (validated by `existNameSpecialityById` helper)
+  - Case-sensitive uniqueness check
+  - Excludes current record from uniqueness check
+
+  **Examples**:
+  - `"Cardiología"`
+  - `"Pediatría Avanzada"`
+  - `"Medicina General"`
+
+  **Validation source**: `backend/routes/speciality.ts:44-45`
+</ParamField>
+
+<ParamField body="state" type="string" required>
+  The state of the specialty.
+
+  **Allowed values**:
+  - `"Activa"` - Active specialty
+  - `"Inactiva"` - Inactive specialty
+
+  **Validation**: Must not be empty. Only the two values above are allowed (enforced by database ENUM).
+
+  **Validation source**: `backend/routes/speciality.ts:46`
+
+  **Use cases**:
+  - Set to `"Inactiva"` to soft-delete a specialty
+  - Set to `"Activa"` to reactivate a specialty
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+```bash cURL - Update Name and State
+curl -X PATCH "http://localhost:3000/specialities/1" \
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Cardiología Avanzada",
+    "state": "Activa"
+  }'
+```
+
+```bash cURL - Deactivate Specialty
+curl -X PATCH "http://localhost:3000/specialities/3" \
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Neurología",
+    "state": "Inactiva"
+  }'
+```
+
+```javascript JavaScript (Fetch)
+const specialityId = 1;
+
+const response = await fetch(`http://localhost:3000/specialities/${specialityId}`, {
+  method: 'PATCH',
+  headers: {
+    'Authorization': `Bearer ${adminToken}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'Cardiología Avanzada',
+    state: 'Activa'
+  })
+});
+
+const data = await response.json();
+console.log('Updated specialty:', data.speciality);
+```
+
+```typescript TypeScript (Axios)
+import axios from 'axios';
+
+const specialityId = 1;
+
+const { data } = await axios.patch(
+  `/specialities/${specialityId}`,
+  {
+    name: 'Pediatría',
+    state: 'Inactiva'
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${adminToken}`
+    }
+  }
+);
+
+console.log('Updated specialty:', data.speciality);
+```
+
+```typescript React Form Example
+import { useState, useEffect } from 'react';
+
+function EditSpecialtyForm({ specialityId }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    state: 'Activa'
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load current data
+  useEffect(() => {
+    const fetchSpeciality = async () => {
+      const response = await fetch(`/specialities/${specialityId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { speciality } = await response.json();
+      setFormData({
+        name: speciality.name,
+        state: speciality.state
+      });
+    };
+    fetchSpeciality();
+  }, [specialityId]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/specialities/${specialityId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.msg || 'Failed to update specialty');
+      }
+
+      const { speciality } = await response.json();
+      console.log('Updated:', speciality);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="text"
+        value={formData.name}
+        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        placeholder="Specialty name"
+        required
+      />
+      <select
+        value={formData.state}
+        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+        required
+      >
+        <option value="Activa">Active</option>
+        <option value="Inactiva">Inactive</option>
+      </select>
+      <button type="submit" disabled={loading}>
+        {loading ? 'Updating...' : 'Update Specialty'}
+      </button>
+      {error && <p className="error">{error}</p>}
+    </form>
+  );
+}
+```
+</CodeGroup>
+
+## Response
+
+<ResponseField name="speciality" type="object" required>
+  The updated specialty object with current values.
+
+  <Expandable title="Specialty Object Properties">
+    <ResponseField name="id" type="number" required>
+      Unique identifier for the specialty (unchanged).
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Updated name of the medical specialty.
+    </ResponseField>
+
+    <ResponseField name="state" type="string" required>
+      Updated state of the specialty.
+
+      **Possible values**:
+      - `"Activa"` - Active specialty
+      - `"Inactiva"` - Inactive specialty
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp when the specialty was originally created (unchanged).
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp when the specialty was last updated (reflects the update time).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Response Examples
+
+<CodeGroup>
+```json 200 - Success
+{
+  "speciality": {
+    "id": 1,
+    "name": "Cardiología Avanzada",
+    "state": "Activa",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-03-11T15:45:00.000Z"
+  }
+}
+```
+
+```json 200 - Deactivated
+{
+  "speciality": {
+    "id": 3,
+    "name": "Neurología",
+    "state": "Inactiva",
+    "createdAt": "2024-01-15T10:32:00.000Z",
+    "updatedAt": "2024-03-11T15:50:00.000Z"
+  }
+}
+```
+
+```json 400 - Invalid ID
+{
+  "msg": "Debe enviar un ID y debe ser numérico"
+}
+```
+
+```json 400 - Validation Error (Empty Name)
+{
+  "errors": [
+    {
+      "msg": "El nombre es obligatorio",
+      "param": "name",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 400 - Validation Error (Empty State)
+{
+  "errors": [
+    {
+      "msg": "El estado es obligatorio",
+      "param": "state",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 400 - Validation Error (Duplicate Name)
+{
+  "errors": [
+    {
+      "msg": "El nombre de la especialidad ya existe",
+      "param": "name",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 404 - Not Found
+{
+  "msg": "La especialidad no está cargado en el sistema"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "msg": "Token no válido"
+}
+```
+
+```json 403 - Forbidden (Not Admin)
+{
+  "msg": "No tiene permisos de administrador"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</CodeGroup>
+
+## Status Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Success - Specialty successfully updated |
+| `400` | Bad Request - Invalid ID format or validation error |
+| `401` | Unauthorized - Invalid or missing JWT token |
+| `403` | Forbidden - User is not an administrator |
+| `404` | Not Found - Specialty with the given ID does not exist |
+| `500` | Server Error - Database or internal error |
+
+## Implementation Details
+
+### Controller Logic
+
+The update endpoint validates the ID and uses Sequelize's `update` method:
+
+```typescript
+export const updateSpeciality = async (req: Request, res: Response) => {
+  const data = req.body;
+  const id = req.params.id;
+
+  try {
+    // Validate ID format
+    if (!id || isNaN(Number(id))) {
+      res.status(400).json({
+        msg: "Debe enviar un ID y debe ser numérico"
+      })
+      return
+    }
+
+    // Check if specialty exists
+    const speciality = await Speciality.findByPk(id)
+
+    if (!speciality) {
+      res.status(404).json({
+        msg: "La especialidad no está cargado en el sistema"
+      })
+      return
+    }
+
+    // Update the specialty
+    await speciality.update(data)
+
+    res.status(200).json({
+      speciality
+    })
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({
+      msg: "Error del servidor"
+    })       
+  }
+}
+```
+
+**Source**: `backend/controllers/speciality.ts:102-139`
+
+### Validation Chain
+
+Validations are defined in the route:
+
+```typescript
+router.patch('/:id',
+  [
+    validatorJWT,
+    isAdmin,
+    check("name", "El nombre es obligatorio").not().isEmpty(),
+    check("name").custom(existNameSpecialityById),
+    check("state", "El estado es obligatorio").not().isEmpty(),
+    collectionErrors
+  ],
+  updateSpeciality
+)
+```
+
+**Source**: `backend/routes/speciality.ts:40-50`
+
+### Uniqueness Check (Excluding Current Record)
+
+The `existNameSpecialityById` helper validates uniqueness while excluding the current record:
+
+```typescript
+// Helper location: backend/helpers/validationsDB.ts
+export const existNameSpecialityById = async (name: string, { req }) => {
+  const { id } = req.params;
+  
+  const speciality = await Speciality.findOne({ 
+    where: { 
+      name,
+      id: { [Op.ne]: id }  // Not equal to current ID
+    } 
+  });
+  
+  if (speciality) {
+    throw new Error('El nombre de la especialidad ya existe');
+  }
+}
+```
+
+This allows updating a specialty without changing its name, while still preventing duplicate names.
+
+### State Management
+
+States are enforced at the database level using Sequelize ENUM:
+
+```typescript
+state: {
+  type: DataTypes.ENUM(...Object.values(STATES_SPECIALITIES)),
+  allowNull: false,
+  defaultValue: STATES_SPECIALITIES.active
+}
+```
+
+**Source**: `backend/models/speciality.ts:27-31`
+
+Attempting to set an invalid state value will result in a database error.
+
+## Common Use Cases
+
+### Update specialty name
+
+```typescript
+const updateSpecialtyName = async (id: number, name: string, currentState: string) => {
+  const response = await fetch(`/specialities/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${adminToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name,
+      state: currentState  // Keep existing state
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update specialty');
+  }
+
+  return await response.json();
+};
+```
+
+### Deactivate specialty (soft delete)
+
+```typescript
+const deactivateSpecialty = async (id: number, name: string) => {
+  const { speciality } = await fetch(`/specialities/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${adminToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name,  // Keep existing name
+      state: 'Inactiva'
+    })
+  }).then(r => r.json());
+
+  console.log(`Deactivated: ${speciality.name}`);
+};
+```
+
+### Reactivate specialty
+
+```typescript
+const reactivateSpecialty = async (id: number, name: string) => {
+  const { speciality } = await fetch(`/specialities/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${adminToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name,  // Keep existing name
+      state: 'Activa'
+    })
+  }).then(r => r.json());
+
+  console.log(`Reactivated: ${speciality.name}`);
+};
+```
+
+### Update with error handling
+
+```typescript
+try {
+  const { speciality } = await fetch(`/specialities/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${adminToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name: 'New Name',
+      state: 'Activa'
+    })
+  }).then(async r => {
+    if (!r.ok) {
+      const error = await r.json();
+      throw new Error(error.msg || 'Update failed');
+    }
+    return r.json();
+  });
+
+  console.log(`Updated specialty: ${speciality.name}`);
+} catch (error) {
+  if (error.message.includes('ya existe')) {
+    console.error('A specialty with this name already exists');
+  } else if (error.message.includes('no está cargado')) {
+    console.error('Specialty not found');
+  } else {
+    console.error('Failed to update:', error.message);
+  }
+}
+```
+
+## Related Endpoints
+
+- [Get All Specialties](/api/specialties/get-all) - Retrieve list of all specialties
+- [Get Specialty by ID](/api/specialties/get-by-id) - Retrieve a single specialty
+- [Create Specialty](/api/specialties/create) - Add a new specialty
+
+## Notes
+
+<Warning>
+  Only users with admin role can update specialties. Attempting to call this endpoint without admin privileges will result in a 403 Forbidden error.
+</Warning>
+
+<Note>
+  Both `name` and `state` fields are required in the request body. Omitting either will result in a 400 validation error.
+</Note>
+
+### Important Considerations
+
+- **ID Validation**: The endpoint validates that the ID is numeric before querying the database
+- **Existence Check**: The endpoint verifies the specialty exists before attempting to update
+- **Uniqueness**: The name uniqueness check excludes the current record, allowing you to update other fields without changing the name
+- **State Required**: Unlike the create endpoint, the state field is required for updates
+- **Partial Updates Not Supported**: You must provide both `name` and `state` fields, even if only updating one
+- **Soft Delete Pattern**: Setting `state` to `"Inactiva"` is the recommended way to "delete" a specialty
+- **Timestamps**: The `updatedAt` field is automatically updated by Sequelize
+- **Admin Only**: The `isAdmin` middleware enforces that only administrators can update specialties
+
+### Soft Delete vs Hard Delete
+
+This API uses a soft delete pattern:
+
+- **Soft Delete**: Set `state` to `"Inactiva"` (recommended)
+  - Preserves historical data
+  - Can be reactivated later
+  - Maintains referential integrity
+
+- **Hard Delete**: Not implemented
+  - Would permanently remove the record
+  - Could break foreign key constraints
+  - Not recommended for production systems

@@ -1,0 +1,321 @@
+---
+title: User Management
+description: Managing user roles, permissions, and access control in Clínica Vitalis
+---
+
+The Clínica Vitalis platform implements a role-based access control (RBAC) system with two distinct user roles. This ensures that sensitive administrative operations are protected while providing standard users with appropriate access to their required functionality.
+
+## User Roles
+
+The system defines two roles in `backend/helpers/constants.ts`:
+
+```typescript backend/helpers/constants.ts
+export const ROLES = {
+    admin: "50yun4dmin",
+    user: "50yunUs3r",
+}
+```
+
+### User Role (`50yunUs3r`)
+
+This is the default role assigned to all new registrations unless the admin key is provided.
+
+**Capabilities:**
+- Access standard application features
+- View their own data
+- Create and manage appointments
+- Update personal information
+
+**Restrictions:**
+- Cannot access administrative endpoints
+- Cannot modify other users' data
+- Cannot manage system-wide settings
+
+### Admin Role (`50yun4dmin`)
+
+Administrative users have elevated privileges for managing the platform.
+
+**Capabilities:**
+- All user role capabilities
+- Access administrative endpoints
+- Manage all users, appointments, and resources
+- Configure system settings
+- Access analytics and reports
+
+<Warning>
+  Admin access should be granted sparingly and only to trusted personnel. The admin key must be kept confidential.
+</Warning>
+
+## User Model
+
+The user data structure is defined using Sequelize ORM:
+
+```typescript backend/models/user.ts
+export interface IUser {
+    id: number;
+    name: string;
+    surname: string;
+    email: string;
+    password: string;
+    rol?: string;
+}
+
+export const User = sequelize.define<UserInstance>('Usuarios', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    surname: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    email: {
+        type: DataTypes.STRING,
+        unique: true,
+        allowNull: false,
+    },
+    password: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    rol: {
+        type: DataTypes.STRING,
+        defaultValue: ROLES.user,
+        allowNull: false,
+    },
+})
+```
+
+### Key Fields
+
+- **id**: Auto-incremented primary key
+- **name**: User's first name (required)
+- **surname**: User's last name (required)
+- **email**: Unique identifier for login (required, must be valid email)
+- **password**: Bcrypt-hashed password (required, min 6 characters)
+- **rol**: User role, defaults to standard user
+
+## Registration Process
+
+### Standard User Registration
+
+<Steps>
+  <Step title="Submit Registration Data">
+    Client sends name, surname, email, and password to `/auth/register`
+  </Step>
+  
+  <Step title="Validation">
+    Express-validator checks all required fields and email format
+  </Step>
+  
+  <Step title="Password Hashing">
+    System generates salt and hashes password using bcrypt
+  </Step>
+  
+  <Step title="User Creation">
+    User is saved to database with default user role
+  </Step>
+</Steps>
+
+```typescript backend/controllers/auth.ts
+const user = await User.create({name, surname, email, password, rol})
+
+const salt = bycryptjs.genSaltSync();
+user.password = bycryptjs.hashSync(password, salt)
+
+await user.save()
+```
+
+### Admin User Registration
+
+To create an admin user, include the `admin-key` header:
+
+<Steps>
+  <Step title="Include Admin Key">
+    Client includes `admin-key` header with the secret key value
+  </Step>
+  
+  <Step title="Key Validation">
+    System checks if `admin-key` matches `KEY_FOR_ADMIN` environment variable
+  </Step>
+  
+  <Step title="Role Assignment">
+    If valid, user role is set to admin before saving
+  </Step>
+</Steps>
+
+```typescript backend/controllers/auth.ts
+const adminKey = req.headers["admin-key"]
+
+if (adminKey === process.env.KEY_FOR_ADMIN) {
+    user.rol = ROLES.admin
+}
+
+await user.save()
+```
+
+<CodeGroup>
+```bash Standard User
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "María",
+    "surname": "González",
+    "email": "maria@example.com",
+    "password": "securePass123"
+  }'
+```
+
+```bash Admin User
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -H "admin-key: your-secret-admin-key" \
+  -d '{
+    "name": "Admin",
+    "surname": "Principal",
+    "email": "admin@clinica.com",
+    "password": "adminPass123"
+  }'
+```
+</CodeGroup>
+
+## Permission Validation
+
+### Admin Middleware
+
+Protected administrative routes use the `isAdmin` middleware:
+
+```typescript backend/middlewares/validatorAdmin.ts
+export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+
+    const { userConfirmated } = req.body;
+
+    if (!userConfirmated) {
+        res.status(404).json({
+            msg: 'No hay usuario confirmado'
+        });
+        return
+    }
+
+    if (userConfirmated.rol !== ROLES.admin) {
+        return res.status(401).json({
+            msg: "El usuario no es un administrador"
+        });
+    }
+
+    next();
+}
+```
+
+### Middleware Chain
+
+Admin-protected routes typically use both JWT validation and role checking:
+
+```typescript
+router.delete('/resource/:id',
+    [
+        validatorJWT,      // Validates token and attaches user
+        isAdmin,           // Checks if user has admin role
+    ],
+    deleteResource
+)
+```
+
+## Validation Rules
+
+The registration endpoint enforces strict validation rules:
+
+```typescript backend/routes/auth.ts
+router.post(
+    '/register',
+    [
+        check("name", "El nombre es obligatorio").not().isEmpty(),
+        check("surname", "El apellido es obligatorio").not().isEmpty(),
+        check("email", "El email es obligatorio").not().isEmpty(),
+        check("email", "El email no es válido").isEmail(),
+        check("email").custom(existEmail),  
+        check("password", "La contraseña debe tener al menos 6 caracteres").isLength({min: 6}),
+        collectionErrors
+    ],
+    register
+)
+```
+
+### Validation Checks
+
+- **Name**: Required, cannot be empty
+- **Surname**: Required, cannot be empty
+- **Email**: Required, must be valid email format, must not already exist in database
+- **Password**: Required, minimum 6 characters
+
+<Warning>
+  Custom validation `existEmail` prevents duplicate email registrations. Each email can only be associated with one account.
+</Warning>
+
+## Error Handling
+
+### Registration Errors
+
+```json
+{
+  "errors": {
+    "errors": [
+      {
+        "msg": "El email no es válido",
+        "param": "email",
+        "location": "body"
+      }
+    ]
+  }
+}
+```
+
+### Authentication Errors
+
+```json
+{
+  "msg": "El usuario no es un administrador"
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Password Requirements">
+    While the system requires minimum 6 characters, implement stronger requirements:
+    - Minimum 12 characters recommended
+    - Mix of uppercase, lowercase, numbers, and symbols
+    - Regular password rotation for admin accounts
+  </Accordion>
+  
+  <Accordion title="Admin Key Management">
+    - Store `KEY_FOR_ADMIN` in environment variables only
+    - Rotate admin keys periodically
+    - Use different keys for development, staging, and production
+    - Never log or expose the admin key in responses
+  </Accordion>
+  
+  <Accordion title="Email Verification">
+    Consider implementing email verification for new registrations to:
+    - Confirm email ownership
+    - Prevent fake account creation
+    - Enable password recovery functionality
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="JWT Implementation" icon="key" href="/auth/jwt-tokens">
+    Learn how JWT tokens are generated and validated
+  </Card>
+  
+  <Card title="Authentication Overview" icon="shield" href="/auth/overview">
+    Return to authentication system overview
+  </Card>
+</CardGroup>

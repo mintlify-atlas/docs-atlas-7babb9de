@@ -1,0 +1,314 @@
+---
+title: 'Get All Specialties'
+description: 'Retrieve a list of all medical specialties'
+api: 'GET /specialities'
+---
+
+## Overview
+
+Retrieves a list of all medical specialties in the system. Supports optional filtering by name search and state.
+
+## Authentication
+
+<Note>
+  This endpoint requires authentication via JWT token. Include the token in the `Authorization` header.
+</Note>
+
+**Required**: JWT token (any authenticated user)
+
+**Middleware chain**:
+- `validatorJWT` - Validates JWT token (backend/middlewares/validatorJWT.ts)
+- `collectionErrors` - Handles validation errors (backend/middlewares/collectionErrors.ts)
+
+**Authorization**: No admin privileges required - available to all authenticated users.
+
+## Endpoint
+
+```
+GET /specialities
+```
+
+**Implementation**: `backend/controllers/speciality.ts:28`
+
+## Query Parameters
+
+All query parameters are optional.
+
+<ParamField query="search" type="string" optional>
+  Search filter to find specialties by name. Uses partial matching (SQL LIKE with prefix matching).
+
+  **Matching logic**: `%${search}` (matches names that contain the search term)
+
+  **Implementation**: `backend/controllers/speciality.ts:36-41`
+
+  **Examples**:
+  - `search=Cardio` - Returns specialties like "Cardiología"
+  - `search=Ped` - Returns specialties like "Pediatría"
+  - `search=a` - Returns all specialties containing "a"
+</ParamField>
+
+<ParamField query="state" type="string" optional>
+  Filter specialties by state.
+
+  **Allowed values**:
+  - `Activa` - Active specialties
+  - `Inactiva` - Inactive specialties
+
+  **Implementation**: `backend/controllers/speciality.ts:44-46`
+
+  **Example**:
+  - `state=Activa` - Returns only active specialties
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+```bash cURL - All Specialties
+curl -X GET "http://localhost:3000/specialities" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```bash cURL - With Search
+curl -X GET "http://localhost:3000/specialities?search=Cardio" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```bash cURL - Active Only
+curl -X GET "http://localhost:3000/specialities?state=Activa" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```bash cURL - Combined Filters
+curl -X GET "http://localhost:3000/specialities?search=Ped&state=Activa" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```javascript JavaScript (Fetch)
+const response = await fetch('http://localhost:3000/specialities?state=Activa', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data.specialities);
+```
+
+```typescript TypeScript (Axios)
+import axios from 'axios';
+
+const { data } = await axios.get('/specialities', {
+  params: {
+    search: 'Cardio',
+    state: 'Activa'
+  },
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
+
+console.log(data.specialities);
+```
+</CodeGroup>
+
+## Response
+
+<ResponseField name="specialities" type="array" required>
+  Array of specialty objects.
+
+  <Expandable title="Specialty Object">
+    <ResponseField name="id" type="number" required>
+      Unique identifier for the specialty (auto-increment).
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Name of the medical specialty. Must be unique across the system.
+
+      **Examples**: "Cardiología", "Pediatría", "Neurología"
+    </ResponseField>
+
+    <ResponseField name="state" type="string" required>
+      Current state of the specialty.
+
+      **Possible values**:
+      - `Activa` - Specialty is active and available
+      - `Inactiva` - Specialty is inactive
+
+      **Default**: `Activa`
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp when the specialty was created.
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp when the specialty was last updated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Response Examples
+
+<CodeGroup>
+```json 200 - Success
+{
+  "specialities": [
+    {
+      "id": 1,
+      "name": "Cardiología",
+      "state": "Activa",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "name": "Pediatría",
+      "state": "Activa",
+      "createdAt": "2024-01-15T10:31:00.000Z",
+      "updatedAt": "2024-01-15T10:31:00.000Z"
+    },
+    {
+      "id": 3,
+      "name": "Neurología",
+      "state": "Inactiva",
+      "createdAt": "2024-01-15T10:32:00.000Z",
+      "updatedAt": "2024-02-01T14:20:00.000Z"
+    }
+  ]
+}
+```
+
+```json 200 - Empty Results
+{
+  "specialities": []
+}
+```
+
+```json 404 - No Specialties
+{
+  "msg": "No hay especialidades cargados en el sistema"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "msg": "Token no válido"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</CodeGroup>
+
+## Status Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Success - Returns array of specialties (may be empty) |
+| `401` | Unauthorized - Invalid or missing JWT token |
+| `404` | Not Found - No specialties exist in the system |
+| `500` | Server Error - Database or internal error |
+
+## Implementation Details
+
+### Database Query
+
+The endpoint uses Sequelize ORM with dynamic filtering:
+
+```typescript
+const filter: any = {}
+
+if (search) {
+  filter[Op.or] = [
+    { name: {[Op.like]: `%${search}`} }
+  ]
+}
+
+if (state) {
+  filter.state = state
+}
+
+const specialities = await Speciality.findAll({
+  where: filter
+})
+```
+
+**Source**: `backend/controllers/speciality.ts:34-50`
+
+### State Management
+
+States are defined using Sequelize ENUM in the model:
+
+- **Model definition**: `backend/models/speciality.ts:27-31`
+- **State constants**: `backend/helpers/constants.ts` (STATES_SPECIALITIES)
+- **Default state**: `Activa`
+
+### Search Behavior
+
+<Note>
+  The search uses SQL LIKE with prefix matching (`%${search}`), which means it will match specialties where the name contains the search term anywhere in the string.
+</Note>
+
+**Examples**:
+- Searching for "Cardio" will match "Cardiología"
+- Searching for "logía" will match "Cardiología", "Neurología", etc.
+- Search is case-sensitive depending on database collation
+
+## Common Use Cases
+
+### Get all active specialties
+
+```typescript
+const response = await fetch('/specialities?state=Activa', {
+  headers: { Authorization: `Bearer ${token}` }
+});
+const { specialities } = await response.json();
+```
+
+### Search for specific specialty
+
+```typescript
+const response = await fetch('/specialities?search=Cardio', {
+  headers: { Authorization: `Bearer ${token}` }
+});
+const { specialities } = await response.json();
+// Filter results client-side if needed
+```
+
+### Populate dropdown/select
+
+```typescript
+// Get all active specialties for a form dropdown
+const response = await fetch('/specialities?state=Activa', {
+  headers: { Authorization: `Bearer ${token}` }
+});
+const { specialities } = await response.json();
+
+// Map to dropdown options
+const options = specialities.map(s => ({
+  value: s.id,
+  label: s.name
+}));
+```
+
+## Related Endpoints
+
+- [Get Specialty by ID](/api/specialties/get-by-id) - Retrieve a single specialty
+- [Create Specialty](/api/specialties/create) - Add a new specialty
+- [Update Specialty](/api/specialties/update) - Modify an existing specialty
+
+## Notes
+
+<Warning>
+  The endpoint returns 404 when no specialties exist in the system, but returns an empty array if the filters match no results. This inconsistency may need to be addressed for better API design.
+</Warning>
+
+- Empty results with filters return `200` with empty array
+- No specialties in database returns `404`
+- The search parameter uses SQL LIKE, which may have performance implications on large datasets
+- No pagination is implemented - all matching results are returned

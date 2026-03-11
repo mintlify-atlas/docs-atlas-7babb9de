@@ -1,0 +1,103 @@
+---
+title: "Get Work Schedule by ID"
+api: "GET /work_schedules/:id"
+description: "Retrieve a specific work schedule by its ID"
+---
+
+## Authentication
+
+Requires a valid JWT token in the request header.
+
+## Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the work schedule
+</ParamField>
+
+## Response
+
+<ResponseField name="workSchedule" type="object">
+  The work schedule object
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="integer">
+      Schedule unique identifier
+    </ResponseField>
+    
+    <ResponseField name="professionalID" type="integer">
+      ID of the professional
+    </ResponseField>
+    
+    <ResponseField name="dayOfWeek" type="integer">
+      Day of the week (0-6, where 0 = Sunday)
+      
+      - `0` = Sunday (Domingo)
+      - `1` = Monday (Lunes)
+      - `2` = Tuesday (Martes)
+      - `3` = Wednesday (Miércoles)
+      - `4` = Thursday (Jueves)
+      - `5` = Friday (Viernes)
+      - `6` = Saturday (Sábado)
+    </ResponseField>
+    
+    <ResponseField name="startTime" type="string">
+      Start time in HH:MM format (e.g., "09:00")
+    </ResponseField>
+    
+    <ResponseField name="endTime" type="string">
+      End time in HH:MM format (e.g., "17:30")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.clinicavitalis.com/work_schedules/1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://api.clinicavitalis.com/work_schedules/1',
+  {
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer YOUR_JWT_TOKEN'
+    }
+  }
+);
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "workSchedule": {
+    "id": 1,
+    "professionalID": 5,
+    "dayOfWeek": 1,
+    "startTime": "09:00",
+    "endTime": "17:30"
+  }
+}
+```
+
+```json 404 - Not Found
+{
+  "msg": "El horario no está cargando en el sistema"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</ResponseExample>
+
+## Notes
+
+- The schedule ID must be valid and exist in the system
+- This endpoint does not include associated professional information (use GET /work_schedules with filters if needed)

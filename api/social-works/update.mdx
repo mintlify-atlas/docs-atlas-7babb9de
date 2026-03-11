@@ -1,0 +1,399 @@
+---
+title: 'Update Social Work'
+api: 'PATCH /socials_works/:id'
+---
+
+Updates an existing social work (health insurance provider) in the system.
+
+## Authentication
+
+Requires a valid JWT token in the Authorization header and admin privileges.
+
+```
+Authorization: Bearer {token}
+```
+
+<Warning>
+  This endpoint requires **admin role**. Non-admin users will receive a 403 Forbidden error.
+</Warning>
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The unique identifier of the social work to update. Must be a numeric value.
+</ParamField>
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Name of the social work (health insurance provider).
+  
+  **Validation:**
+  - Cannot be empty
+  - Must be unique (unless it's the current name of this social work)
+  
+  Example: `"OSDE"`
+</ParamField>
+
+<ParamField body="state" type="string" required>
+  Current operational state of the social work.
+  
+  **Validation:**
+  - Cannot be empty
+  - Must be one of the allowed values
+  
+  **Allowed values:**
+  - `"Activa"` - Active social work
+  - `"Inactiva"` - Inactive social work
+  
+  Example: `"Activa"`
+</ParamField>
+
+<ParamField body="address" type="string" required>
+  Physical address of the social work office.
+  
+  **Validation:**
+  - Cannot be empty
+  
+  Example: `"Av. Leandro N. Alem 1067, CABA"`
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Contact phone number for the social work.
+  
+  **Validation:**
+  - Cannot be empty
+  - Must be between 10 and 20 characters
+  - Can only contain numbers, spaces, hyphens, and plus signs
+  - Pattern: `/^[0-9\s\-\+]*$/`
+  
+  Examples:
+  - `"+54 11 4310-5555"`
+  - `"0800-444-1200"`
+  - `"11 5777 7777"`
+</ParamField>
+
+<ParamField body="webpage" type="string" required>
+  Website URL of the social work.
+  
+  **Validation:**
+  - Cannot be empty
+  
+  Example: `"https://www.osde.com.ar"`
+</ParamField>
+
+## Response
+
+<ResponseField name="socialWork" type="object">
+  The updated social work object with all current values
+  
+  <Expandable title="Properties">
+    <ResponseField name="id" type="number">
+      Unique identifier (unchanged)
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Updated name of the social work
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Updated state: `"Activa"` or `"Inactiva"`
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Updated physical address
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Updated contact phone number
+    </ResponseField>
+    
+    <ResponseField name="webpage" type="string">
+      Updated website URL
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "socialWork": {
+    "id": 1,
+    "name": "OSDE",
+    "state": "Inactiva",
+    "address": "Av. Leandro N. Alem 1067, CABA",
+    "phone": "+54 11 4310-6666",
+    "webpage": "https://www.osde.com.ar"
+  }
+}
+```
+
+```json 400 - Invalid ID
+{
+  "msg": "Debe enviar un ID y debe ser numérico"
+}
+```
+
+```json 404 - Social Work Not Found
+{
+  "msg": "La obra social no está cargado en el sistema"
+}
+```
+
+```json 400 - Validation Error (Duplicate Name)
+{
+  "errors": [
+    {
+      "msg": "El nombre de la obra social ya existe",
+      "param": "name",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 400 - Validation Error (Invalid State)
+{
+  "errors": [
+    {
+      "msg": "El estado es obligatorio",
+      "param": "state",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 400 - Validation Error (Invalid Phone)
+{
+  "errors": [
+    {
+      "msg": "El teléfono debe tener entre 10 y 20 caracteres",
+      "param": "phone",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 400 - Validation Error (Phone Format)
+{
+  "errors": [
+    {
+      "msg": "El teléfono solo puede contener números, guiones o espacios",
+      "param": "phone",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 403 - Forbidden (Not Admin)
+{
+  "msg": "Acceso denegado. Se requieren permisos de administrador"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "msg": "Token no válido"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</ResponseExample>
+
+## Code Examples
+
+<CodeGroup>
+```javascript JavaScript
+const token = 'your-admin-jwt-token';
+const socialWorkId = 1;
+
+const updates = {
+  name: 'OSDE',
+  state: 'Inactiva',
+  address: 'Av. Leandro N. Alem 1067, CABA',
+  phone: '+54 11 4310-6666',
+  webpage: 'https://www.osde.com.ar'
+};
+
+const response = await fetch(`https://api.clinicavitalis.com/socials_works/${socialWorkId}`, {
+  method: 'PATCH',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(updates)
+});
+
+const data = await response.json();
+console.log(data.socialWork);
+```
+
+```python Python
+import requests
+
+token = 'your-admin-jwt-token'
+social_work_id = 1
+url = f'https://api.clinicavitalis.com/socials_works/{social_work_id}'
+
+headers = {
+    'Authorization': f'Bearer {token}',
+    'Content-Type': 'application/json'
+}
+
+payload = {
+    'name': 'OSDE',
+    'state': 'Inactiva',
+    'address': 'Av. Leandro N. Alem 1067, CABA',
+    'phone': '+54 11 4310-6666',
+    'webpage': 'https://www.osde.com.ar'
+}
+
+response = requests.patch(url, json=payload, headers=headers)
+data = response.json()
+print(data['socialWork'])
+```
+
+```bash cURL
+curl -X PATCH "https://api.clinicavitalis.com/socials_works/1" \
+  -H "Authorization: Bearer your-admin-jwt-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "OSDE",
+    "state": "Inactiva",
+    "address": "Av. Leandro N. Alem 1067, CABA",
+    "phone": "+54 11 4310-6666",
+    "webpage": "https://www.osde.com.ar"
+  }'
+```
+</CodeGroup>
+
+## Validation Rules
+
+### ID Validation
+- Must be provided in the URL path
+- Must be a numeric value
+- Must correspond to an existing social work in the database
+
+### Name Validation
+- Must be provided (not empty)
+- Must be unique across all social works
+- Exception: Can keep the same name if not changing it
+- Database will enforce uniqueness constraint
+
+### State Validation
+- Must be provided (not empty)
+- Must be exactly one of:
+  - `"Activa"` - Social work is active and can be used
+  - `"Inactiva"` - Social work is inactive
+- Case-sensitive validation
+
+### Phone Validation
+- **Length**: Between 10 and 20 characters
+- **Format**: Can only contain:
+  - Numbers (0-9)
+  - Spaces
+  - Hyphens (-)
+  - Plus sign (+)
+- **Valid examples**:
+  - `"+54 11 4310-5555"`
+  - `"0800-444-1200"`
+  - `"11 5777 7777"`
+  - `"+54-11-4310-5555"`
+- **Invalid examples**:
+  - `"123"` (too short)
+  - `"(011) 4310-5555"` (parentheses not allowed)
+  - `"tel:1234567890"` (letters not allowed)
+
+### Address & Webpage
+- Both fields are required and cannot be empty
+- No format restrictions beyond being non-empty strings
+
+## State Management
+
+Unlike the create endpoint, the update endpoint **requires** the state field:
+
+<CodeGroup>
+```javascript Deactivate Social Work
+// Change social work to inactive
+const updates = {
+  name: 'OSDE',
+  state: 'Inactiva',  // Changed from 'Activa'
+  address: 'Av. Leandro N. Alem 1067, CABA',
+  phone: '+54 11 4310-5555',
+  webpage: 'https://www.osde.com.ar'
+};
+```
+
+```javascript Reactivate Social Work
+// Change social work back to active
+const updates = {
+  name: 'OSDE',
+  state: 'Activa',  // Changed from 'Inactiva'
+  address: 'Av. Leandro N. Alem 1067, CABA',
+  phone: '+54 11 4310-5555',
+  webpage: 'https://www.osde.com.ar'
+};
+```
+</CodeGroup>
+
+**State values:**
+- `"Activa"` - The social work is operational and can be assigned to patients
+- `"Inactiva"` - The social work is disabled and should not be used for new assignments
+
+## Common Use Cases
+
+### Update Contact Information
+Change phone number or address when the social work updates their contact details:
+
+```javascript
+const updates = {
+  name: 'OSDE',
+  state: 'Activa',
+  address: 'Nueva Dirección 123, CABA',  // Updated
+  phone: '+54 11 9999-8888',  // Updated
+  webpage: 'https://www.osde.com.ar'
+};
+```
+
+### Deactivate Social Work
+Mark a social work as inactive when they no longer provide services:
+
+```javascript
+const updates = {
+  name: 'Old Insurance Co',
+  state: 'Inactiva',  // Deactivated
+  address: 'Av. Example 456, CABA',
+  phone: '+54 11 1234-5678',
+  webpage: 'https://www.example.com'
+};
+```
+
+### Update Website
+Change the webpage URL when the social work updates their website:
+
+```javascript
+const updates = {
+  name: 'OSDE',
+  state: 'Activa',
+  address: 'Av. Leandro N. Alem 1067, CABA',
+  phone: '+54 11 4310-5555',
+  webpage: 'https://www.new-osde-site.com.ar'  // Updated
+};
+```
+
+## Notes
+
+- Only administrators can update social works
+- All fields (name, state, address, phone, webpage) are required in the request
+- The ID in the URL must be numeric and exist in the database
+- Name uniqueness is validated, but the current social work's name is allowed
+- State transitions between "Activa" and "Inactiva" can be made freely
+- Validation errors will return a 400 status with detailed error messages
+- The response includes the complete updated object with all fields

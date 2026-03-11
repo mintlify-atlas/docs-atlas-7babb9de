@@ -1,0 +1,305 @@
+---
+title: 'Configuration'
+description: 'Environment variables and configuration settings for Clínica Vitalis'
+icon: 'gear'
+---
+
+## Overview
+
+Clínica Vitalis uses environment variables to configure both the backend API server and optionally the frontend application. All sensitive configuration should be stored in `.env` files that are not committed to version control.
+
+## Backend Configuration
+
+### Required Environment Variables
+
+Create a `.env` file in the `backend/` directory with the following variables:
+
+```bash .env
+# Server Configuration
+PORT=3000
+
+# JWT Secret Key
+KEY_SECRET=your-super-secret-jwt-key-here
+```
+
+<Note>
+  The `.env` file should never be committed to version control. Add it to `.gitignore` to prevent accidental commits.
+</Note>
+
+### Environment Variable Reference
+
+#### PORT
+
+<ParamField path="PORT" type="number" default="3000">
+  The port number on which the Express server will listen for incoming requests.
+
+  **Usage in code**: `backend/models/server.ts:34`
+
+  ```typescript
+  this.port = process.env.PORT
+  ```
+
+  **Example values**:
+  - `3000` (development)
+  - `8080` (production)
+  - `5000` (alternative)
+</ParamField>
+
+#### KEY_SECRET
+
+<ParamField path="KEY_SECRET" type="string" required>
+  Secret key used for signing and verifying JWT tokens. This should be a long, random string that is kept secure.
+
+  **Usage in code**: 
+  - `backend/helpers/generateJWT.ts:12` - Signing tokens
+  - `backend/middlewares/validatorJWT.ts` - Verifying tokens
+
+  ```typescript
+  jwt.sign(
+    payload,
+    process.env.KEY_SECRET as string,
+    { expiresIn: "4h" },
+    callback
+  )
+  ```
+
+  **Security recommendations**:
+  - Use at least 32 characters
+  - Include uppercase, lowercase, numbers, and special characters
+  - Generate using a secure random generator
+  - Never share or commit this value
+
+  **Generate a secure key**:
+  ```bash
+  # Using Node.js
+  node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+  # Using OpenSSL
+  openssl rand -hex 64
+  ```
+</ParamField>
+
+### Database Configuration
+
+The database configuration is hardcoded in `backend/database/config.ts` and uses SQLite:
+
+```typescript
+export const sequelize = new Sequelize({
+  dialect: "sqlite",
+  storage: "./data/hospital.sqlite"
+})
+```
+
+**Database file location**: `backend/data/hospital.sqlite`
+
+<Note>
+  Currently, the database path is not configurable via environment variables. If you need to change it, modify `backend/database/config.ts` directly.
+</Note>
+
+### JWT Token Configuration
+
+JWT tokens are configured with the following settings in `backend/helpers/generateJWT.ts:13-14`:
+
+- **Expiration time**: 4 hours
+- **Algorithm**: HS256 (default)
+- **Payload**: `{ id: userId }`
+
+## Frontend Configuration
+
+### Optional Environment Variables
+
+Create a `.env` file in the `hospital-staff-manager/` directory if you need to configure the API endpoint:
+
+```bash .env
+# Backend API URL
+VITE_API_URL=http://localhost:3000
+
+# API Base Path (if different)
+VITE_API_BASE_PATH=/api
+```
+
+<Note>
+  Vite requires all environment variables that should be exposed to the client to be prefixed with `VITE_`. Variables without this prefix will not be available in the browser.
+</Note>
+
+### Environment Variable Reference
+
+#### VITE_API_URL
+
+<ParamField path="VITE_API_URL" type="string" default="http://localhost:3000">
+  The base URL of the backend API server.
+
+  **Example values**:
+  - `http://localhost:3000` (local development)
+  - `https://api.clinicavitalis.com` (production)
+  - `http://192.168.1.100:3000` (local network testing)
+</ParamField>
+
+## Configuration by Environment
+
+### Development
+
+<CodeGroup>
+  ```bash Backend (.env)
+  PORT=3000
+  KEY_SECRET=dev-secret-key-change-in-production
+  ```
+
+  ```bash Frontend (.env)
+  VITE_API_URL=http://localhost:3000
+  ```
+</CodeGroup>
+
+### Production
+
+<CodeGroup>
+  ```bash Backend (.env)
+  PORT=8080
+  KEY_SECRET=your-production-secret-key-very-long-and-secure
+  ```
+
+  ```bash Frontend (.env)
+  VITE_API_URL=https://api.clinicavitalis.com
+  ```
+</CodeGroup>
+
+### Testing
+
+<CodeGroup>
+  ```bash Backend (.env)
+  PORT=3001
+  KEY_SECRET=test-secret-key
+  ```
+
+  ```bash Frontend (.env)
+  VITE_API_URL=http://localhost:3001
+  ```
+</CodeGroup>
+
+## Security Best Practices
+
+<Steps>
+  <Step title="Use Strong Secrets">
+    Generate strong, random values for `KEY_SECRET` using cryptographically secure methods.
+
+    ```bash
+    node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+    ```
+  </Step>
+
+  <Step title="Never Commit .env Files">
+    Ensure `.env` is in your `.gitignore` file:
+
+    ```bash .gitignore
+    # Environment variables
+    .env
+    .env.local
+    .env.*.local
+    ```
+  </Step>
+
+  <Step title="Use Different Secrets Per Environment">
+    Use different `KEY_SECRET` values for development, staging, and production environments.
+  </Step>
+
+  <Step title="Rotate Secrets Regularly">
+    Change your `KEY_SECRET` periodically, especially after:
+    - Team member departures
+    - Security incidents
+    - Suspected compromises
+
+    <Note>
+      Rotating the JWT secret will invalidate all existing tokens, requiring users to log in again.
+    </Note>
+  </Step>
+
+  <Step title="Restrict File Permissions">
+    On Unix-like systems, restrict access to `.env` files:
+
+    ```bash
+    chmod 600 .env
+    ```
+  </Step>
+</Steps>
+
+## Loading Environment Variables
+
+The backend loads environment variables using the `dotenv` package in `backend/app.ts:1,5`:
+
+```typescript
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const server = new Server();
+server.listen();
+```
+
+This must be called before any code that uses `process.env` values.
+
+## Validation and Error Handling
+
+<Note>
+  The application does not currently validate that required environment variables are set. Missing variables will result in `undefined` values and runtime errors.
+</Note>
+
+### Recommended Validation
+
+Add validation to `backend/app.ts` to fail fast if required variables are missing:
+
+```typescript
+import dotenv from "dotenv";
+
+dotenv.config();
+
+// Validate required environment variables
+const required = ['PORT', 'KEY_SECRET'];
+const missing = required.filter(key => !process.env[key]);
+
+if (missing.length > 0) {
+  console.error(`Missing required environment variables: ${missing.join(', ')}`);
+  process.exit(1);
+}
+
+const server = new Server();
+server.listen();
+```
+
+## Troubleshooting
+
+### Environment Variables Not Loading
+
+**Symptoms**: Application behaves as if environment variables are not set.
+
+**Solutions**:
+1. Verify `.env` file is in the correct directory
+2. Check that `dotenv.config()` is called before using variables
+3. Ensure no syntax errors in `.env` file (no quotes needed for values)
+4. Restart the development server after changing `.env`
+
+### JWT Errors
+
+**Symptoms**: "JsonWebTokenError" or authentication failures.
+
+**Solutions**:
+1. Verify `KEY_SECRET` is set in `.env`
+2. Ensure the secret is the same in all instances
+3. Check that tokens haven't expired (4-hour lifetime)
+4. Verify no extra whitespace in `KEY_SECRET` value
+
+### CORS Errors
+
+**Symptoms**: Frontend cannot connect to backend.
+
+**Solutions**:
+1. Verify backend is running and accessible
+2. Check `VITE_API_URL` matches backend address
+3. Ensure CORS is enabled in backend (configured in `backend/models/server.ts:85`)
+
+## Next Steps
+
+After configuring your environment:
+
+1. [Set up the database](/deployment/database-setup)
+2. [Start the application](/deployment/installation#starting-the-application)
+3. [Review API authentication](/api-reference/authentication)

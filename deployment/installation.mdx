@@ -1,0 +1,240 @@
+---
+title: 'Installation'
+description: 'Step-by-step guide to install Clínica Vitalis frontend and backend'
+icon: 'download'
+---
+
+## Overview
+
+Clínica Vitalis consists of two main components that need to be installed separately:
+
+- **Backend**: Node.js API server with Express and Sequelize
+- **Frontend**: React application built with Vite and Material-UI
+
+## Prerequisites
+
+Before installing Clínica Vitalis, ensure you have the following installed:
+
+- **Node.js**: v18.0.0 or higher
+- **pnpm**: v10.20.0 or higher (specified package manager)
+- **Git**: For cloning the repository
+
+<Note>
+  The project uses **pnpm** as its package manager. While npm or yarn might work, pnpm is recommended for consistency.
+</Note>
+
+## Backend Installation
+
+<Steps>
+  <Step title="Navigate to Backend Directory">
+    ```bash
+    cd backend
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required backend dependencies using pnpm:
+
+    ```bash
+    pnpm install
+    ```
+
+    This will install the following key dependencies:
+    - **express** (v5.1.0): Web framework
+    - **sequelize** (v6.37.7): ORM for database operations
+    - **sqlite3** (v5.1.7): SQLite database driver
+    - **bcryptjs** (v3.0.3): Password hashing
+    - **jsonwebtoken** (v9.0.2): JWT authentication
+    - **dotenv** (v17.2.3): Environment variable management
+    - **cors** (v2.8.5): CORS middleware
+    - **express-validator** (v7.3.1): Request validation
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Create a `.env` file in the backend directory. See the [Configuration](/deployment/configuration) page for details.
+
+    ```bash
+    touch .env
+    ```
+  </Step>
+
+  <Step title="Initialize Database">
+    The database will be automatically created when you first start the server. See [Database Setup](/deployment/database-setup) for more information.
+  </Step>
+
+  <Step title="Compile TypeScript (Optional)">
+    If you need to compile TypeScript to JavaScript:
+
+    ```bash
+    pnpm exec tsc
+    ```
+  </Step>
+</Steps>
+
+## Frontend Installation
+
+<Steps>
+  <Step title="Navigate to Frontend Directory">
+    ```bash
+    cd hospital-staff-manager
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required frontend dependencies:
+
+    ```bash
+    pnpm install
+    ```
+
+    This will install the following key dependencies:
+    - **react** (v19.2.0): UI library
+    - **react-router-dom** (v6.30.2): Routing
+    - **@mui/material** (v7.3.6): Material-UI components
+    - **@reduxjs/toolkit** (v2.11.0): State management
+    - **react-redux** (v9.2.0): Redux bindings for React
+    - **redux-persist** (v6.0.0): State persistence
+    - **react-hook-form** (v7.66.1): Form handling
+    - **jwt-decode** (v4.0.0): JWT decoding
+    - **sweetalert2** (v11.26.3): Alert dialogs
+    - **date-fns** (v4.1.0): Date utilities
+  </Step>
+
+  <Step title="Configure Environment Variables (if needed)">
+    If your frontend requires environment variables (e.g., API base URL), create a `.env` file:
+
+    ```bash
+    touch .env
+    ```
+
+    Add the backend API URL:
+
+    ```bash
+    VITE_API_URL=http://localhost:3000
+    ```
+
+    <Note>
+      Vite requires environment variables to be prefixed with `VITE_` to be exposed to the client.
+    </Note>
+  </Step>
+</Steps>
+
+## Starting the Application
+
+### Development Mode
+
+<CodeGroup>
+  ```bash Backend
+  cd backend
+  pnpm run dev
+  ```
+
+  ```bash Frontend
+  cd hospital-staff-manager
+  pnpm run dev
+  ```
+</CodeGroup>
+
+The backend will start on the port specified in your `.env` file (default: 3000), and the frontend will typically start on port 5173.
+
+### Production Build
+
+<CodeGroup>
+  ```bash Backend
+  cd backend
+  pnpm exec tsc
+  node dist/app.js
+  ```
+
+  ```bash Frontend
+  cd hospital-staff-manager
+  pnpm run build
+  pnpm run preview
+  ```
+</CodeGroup>
+
+## Verifying Installation
+
+To verify that everything is installed correctly:
+
+<Steps>
+  <Step title="Check Backend">
+    Start the backend server and check the console output:
+
+    ```bash
+    cd backend
+    pnpm run dev
+    ```
+
+    You should see:
+    ```
+    Servidor corriendo en el puerto 3000
+    ```
+  </Step>
+
+  <Step title="Check Database">
+    Verify that the SQLite database file was created:
+
+    ```bash
+    ls -l backend/data/hospital.sqlite
+    ```
+  </Step>
+
+  <Step title="Check Frontend">
+    Start the frontend development server:
+
+    ```bash
+    cd hospital-staff-manager
+    pnpm run dev
+    ```
+
+    Open your browser to the URL shown in the console (typically `http://localhost:5173`).
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Port Already in Use
+
+If you get a "port already in use" error, either:
+- Change the `PORT` in your `.env` file
+- Kill the process using that port:
+
+```bash
+# Find the process
+lsof -i :3000
+
+# Kill it
+kill -9 <PID>
+```
+
+### Module Not Found Errors
+
+If you encounter module not found errors:
+
+```bash
+# Clear pnpm cache and reinstall
+pnpm store prune
+rm -rf node_modules
+pnpm install
+```
+
+### TypeScript Compilation Errors
+
+If TypeScript compilation fails:
+
+```bash
+# Check TypeScript version
+pnpm list typescript
+
+# Reinstall TypeScript
+pnpm add -D typescript@~5.9.3
+```
+
+## Next Steps
+
+After installation:
+
+1. [Configure environment variables](/deployment/configuration)
+2. [Set up the database schema](/deployment/database-setup)
+3. [Review the API documentation](/api-reference/overview)

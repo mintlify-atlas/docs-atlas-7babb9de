@@ -1,0 +1,446 @@
+---
+title: 'Create Specialty'
+description: 'Create a new medical specialty'
+api: 'POST /specialities'
+---
+
+## Overview
+
+Creates a new medical specialty in the system. Only administrators can create specialties.
+
+## Authentication & Authorization
+
+<Warning>
+  This endpoint requires both authentication AND administrator privileges.
+</Warning>
+
+**Required**: JWT token from an admin user
+
+**Middleware chain**:
+1. `validatorJWT` - Validates JWT token (backend/middlewares/validatorJWT.ts)
+2. `isAdmin` - Verifies user has admin role (backend/middlewares/validatorAdmin.ts)
+3. Validation checks:
+   - `check("name", "El nombre es obligatorio").not().isEmpty()` - Name is required
+   - `check("name").custom(existNameSpeciality)` - Name must be unique
+4. `collectionErrors` - Handles validation errors
+
+**Authorization**: Admin role required. Non-admin users will receive a 401 or 403 error.
+
+## Endpoint
+
+```
+POST /specialities
+```
+
+**Implementation**: `backend/controllers/speciality.ts:7`
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  The name of the medical specialty. Must be unique across the system.
+
+  **Validation**:
+  - Cannot be empty
+  - Must be unique (validated by `existNameSpeciality` helper)
+  - Case-sensitive uniqueness check
+
+  **Examples**:
+  - `"Cardiología"`
+  - `"Pediatría"`
+  - `"Medicina General"`
+  - `"Traumatología"`
+
+  **Validation source**: `backend/routes/speciality.ts:33-34`
+</ParamField>
+
+<ParamField body="state" type="string" optional>
+  The initial state of the specialty. If not provided, defaults to "Activa".
+
+  **Allowed values**:
+  - `"Activa"` - Active specialty (default)
+  - `"Inactiva"` - Inactive specialty
+
+  **Default**: `"Activa"`
+
+  **Note**: While this field is optional in the request body, it's defined as `allowNull: false` in the model, so Sequelize will use the default value.
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+```bash cURL - Minimal
+curl -X POST "http://localhost:3000/specialities" \
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Cardiología"
+  }'
+```
+
+```bash cURL - With State
+curl -X POST "http://localhost:3000/specialities" \
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Neurología",
+    "state": "Activa"
+  }'
+```
+
+```javascript JavaScript (Fetch)
+const response = await fetch('http://localhost:3000/specialities', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${adminToken}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'Cardiología'
+  })
+});
+
+const data = await response.json();
+console.log('Created specialty:', data.speciality);
+```
+
+```typescript TypeScript (Axios)
+import axios from 'axios';
+
+const { data } = await axios.post('/specialities', 
+  {
+    name: 'Pediatría',
+    state: 'Activa'
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${adminToken}`
+    }
+  }
+);
+
+console.log('Created specialty:', data.speciality);
+```
+
+```typescript React Form Example
+import { useState } from 'react';
+
+function CreateSpecialtyForm() {
+  const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/specialities', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.msg || 'Failed to create specialty');
+      }
+
+      const { speciality } = await response.json();
+      console.log('Created:', speciality);
+      setName(''); // Reset form
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Specialty name"
+        required
+      />
+      <button type="submit" disabled={loading}>
+        {loading ? 'Creating...' : 'Create Specialty'}
+      </button>
+      {error && <p className="error">{error}</p>}
+    </form>
+  );
+}
+```
+</CodeGroup>
+
+## Response
+
+<ResponseField name="speciality" type="object" required>
+  The newly created specialty object.
+
+  <Expandable title="Specialty Object Properties">
+    <ResponseField name="id" type="number" required>
+      Auto-generated unique identifier for the specialty.
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Name of the medical specialty (as provided in request).
+    </ResponseField>
+
+    <ResponseField name="state" type="string" required>
+      State of the specialty.
+
+      **Value**: `"Activa"` (default) or the value provided in the request.
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp when the specialty was created.
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp when the specialty was last updated (same as createdAt for new records).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Response Examples
+
+<CodeGroup>
+```json 201 - Created
+{
+  "speciality": {
+    "id": 5,
+    "name": "Cardiología",
+    "state": "Activa",
+    "createdAt": "2024-03-11T15:30:00.000Z",
+    "updatedAt": "2024-03-11T15:30:00.000Z"
+  }
+}
+```
+
+```json 400 - Validation Error (Empty Name)
+{
+  "errors": [
+    {
+      "msg": "El nombre es obligatorio",
+      "param": "name",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 400 - Validation Error (Duplicate Name)
+{
+  "errors": [
+    {
+      "msg": "El nombre de la especialidad ya existe",
+      "param": "name",
+      "location": "body"
+    }
+  ]
+}
+```
+
+```json 401 - Unauthorized
+{
+  "msg": "Token no válido"
+}
+```
+
+```json 403 - Forbidden (Not Admin)
+{
+  "msg": "No tiene permisos de administrador"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</CodeGroup>
+
+## Status Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| `201` | Created - Specialty successfully created |
+| `400` | Bad Request - Validation error (missing name or duplicate) |
+| `401` | Unauthorized - Invalid or missing JWT token |
+| `403` | Forbidden - User is not an administrator |
+| `500` | Server Error - Database or internal error |
+
+## Implementation Details
+
+### Controller Logic
+
+The create endpoint uses Sequelize's `create` method:
+
+```typescript
+export const createSpeciality = async (req: Request, res: Response) => {
+  const data = req.body;
+
+  try {
+    const speciality = await Speciality.create(data)
+
+    res.status(201).json({
+      speciality
+    })
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({
+      msg: "Error del servidor"
+    })
+  }
+}
+```
+
+**Source**: `backend/controllers/speciality.ts:7-26`
+
+### Validation Chain
+
+Validations are defined in the route:
+
+```typescript
+router.post('/',
+  [
+    validatorJWT,
+    isAdmin,
+    check("name", "El nombre es obligatorio").not().isEmpty(),
+    check("name").custom(existNameSpeciality),
+    collectionErrors
+  ],
+  createSpeciality
+)
+```
+
+**Source**: `backend/routes/speciality.ts:29-38`
+
+### Uniqueness Check
+
+The `existNameSpeciality` helper validates that the name doesn't already exist:
+
+```typescript
+// Helper location: backend/helpers/validationsDB.ts
+export const existNameSpeciality = async (name: string) => {
+  const speciality = await Speciality.findOne({ where: { name } });
+  
+  if (speciality) {
+    throw new Error('El nombre de la especialidad ya existe');
+  }
+}
+```
+
+### Admin Authorization
+
+The `isAdmin` middleware verifies the user has admin privileges:
+
+**Source**: `backend/middlewares/validatorAdmin.ts`
+
+### State Management
+
+States are enforced at the database level using Sequelize ENUM:
+
+```typescript
+state: {
+  type: DataTypes.ENUM(...Object.values(STATES_SPECIALITIES)),
+  allowNull: false,
+  defaultValue: STATES_SPECIALITIES.active  // "Activa"
+}
+```
+
+**Source**: `backend/models/speciality.ts:27-31`
+
+## Common Use Cases
+
+### Basic specialty creation
+
+```typescript
+const createSpecialty = async (name: string) => {
+  const response = await fetch('/specialities', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${adminToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ name })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.msg || 'Failed to create specialty');
+  }
+
+  return await response.json();
+};
+```
+
+### Create with error handling
+
+```typescript
+try {
+  const { speciality } = await createSpecialty('Cardiología');
+  console.log(`Created specialty with ID: ${speciality.id}`);
+} catch (error) {
+  if (error.message.includes('ya existe')) {
+    console.error('A specialty with this name already exists');
+  } else {
+    console.error('Failed to create specialty:', error.message);
+  }
+}
+```
+
+### Bulk creation with validation
+
+```typescript
+const specialtyNames = ['Cardiología', 'Pediatría', 'Neurología'];
+
+const results = await Promise.allSettled(
+  specialtyNames.map(name => 
+    fetch('/specialities', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name })
+    })
+  )
+);
+
+const created = results.filter(r => r.status === 'fulfilled');
+const failed = results.filter(r => r.status === 'rejected');
+
+console.log(`Created: ${created.length}, Failed: ${failed.length}`);
+```
+
+## Related Endpoints
+
+- [Get All Specialties](/api/specialties/get-all) - Retrieve list of all specialties
+- [Get Specialty by ID](/api/specialties/get-by-id) - Retrieve a single specialty
+- [Update Specialty](/api/specialties/update) - Modify an existing specialty
+
+## Notes
+
+<Warning>
+  Only users with admin role can create specialties. Attempting to call this endpoint without admin privileges will result in a 403 Forbidden error.
+</Warning>
+
+<Note>
+  Specialty names are case-sensitive and must be unique. "Cardiología" and "cardiología" would be considered different specialties.
+</Note>
+
+### Important Considerations
+
+- The `state` field defaults to "Activa" if not provided
+- Specialty names cannot be empty strings or whitespace
+- The uniqueness constraint is enforced at the database level
+- Admin authentication is required - the `isAdmin` middleware checks the user's role
+- Validation errors return 400 with detailed error information
+- Database errors (including duplicate key errors) may return 500

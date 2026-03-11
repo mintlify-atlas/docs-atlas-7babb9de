@@ -1,0 +1,318 @@
+---
+title: Specialty Management
+description: Organize medical specialties and categorize healthcare professionals
+---
+
+## Overview
+
+The Specialty Management feature enables administrators to define and manage medical specialties within Clínica Vitalis. Specialties are used to categorize professionals and help patients find the right type of healthcare provider for their needs.
+
+## Data Model
+
+Specialties have a simple but essential structure:
+
+```typescript
+interface ISpeciality {
+    id: number;
+    name: string;       // Unique specialty name
+    state?: string;     // active | inactive
+}
+```
+
+### Specialty States
+
+- **Activa** (Active): Specialty is available for assignment to professionals
+- **Inactiva** (Inactive): Specialty is archived and not available for new assignments
+
+## Key Features
+
+### Create Specialty
+
+Administrators can add new medical specialties to the system:
+
+<Steps>
+  <Step title="Enter Specialty Name">
+    Provide a descriptive name for the specialty (e.g., "Cardiología", "Pediatría").
+  </Step>
+  
+  <Step title="Validate Uniqueness">
+    System checks that the specialty name doesn't already exist.
+  </Step>
+  
+  <Step title="Create Record">
+    Specialty is created with "Active" state by default.
+  </Step>
+</Steps>
+
+<Note>
+  Specialty names must be unique across the system. This prevents duplicate categories and ensures consistent professional categorization.
+</Note>
+
+### Validation Rules
+
+The system enforces validation from `backend/routes/speciality.ts:29-37`:
+
+```typescript
+check("name", "El nombre es obligatorio").not().isEmpty()
+check("name").custom(existNameSpeciality)  // Ensures uniqueness
+```
+
+### Database Constraints
+
+The specialty model includes important constraints:
+
+```typescript
+// From backend/models/speciality.ts:22-31
+name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true        // Enforces uniqueness at database level
+}
+state: {
+    type: DataTypes.ENUM(...Object.values(STATES_SPECIALITIES)),
+    allowNull: false,
+    defaultValue: STATES_SPECIALITIES.active
+}
+```
+
+### View Specialties
+
+Specialties can be retrieved in multiple ways:
+
+- **All specialties**: Complete list with active and inactive specialties
+- **By ID**: Specific specialty details
+- **With Professionals**: When viewing professionals, their specialty is included
+
+### Update Specialty
+
+Administrators can modify specialty information:
+
+<Steps>
+  <Step title="Locate Specialty">
+    Find the specialty by ID or from the specialty list.
+  </Step>
+  
+  <Step title="Update Name or State">
+    Modify the specialty name or change its state (active/inactive).
+  </Step>
+  
+  <Step title="Validate Uniqueness">
+    System ensures the new name doesn't conflict with existing specialties (excluding current one).
+  </Step>
+  
+  <Step title="Save Changes">
+    Updated specialty information is persisted.
+  </Step>
+</Steps>
+
+<Note>
+  When updating a specialty name, the system validates uniqueness while excluding the current specialty from the check.
+</Note>
+
+## Professional Integration
+
+Specialties are directly linked to professionals:
+
+### Assignment
+
+Each professional must be assigned to exactly one specialty when created:
+
+```typescript
+// From backend/models/professionals.ts:65-72
+specialityID: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+        model: 'Especialidades',
+        key: 'id'
+    }
+}
+```
+
+### Display
+
+When retrieving professionals, specialty information is included:
+
+```typescript
+// From backend/controllers/professionals.ts:68-71
+include: [
+    {
+        model: Speciality,
+        attributes: ['name']
+    }
+]
+```
+
+This allows the system to display the professional's specialty name alongside their information.
+
+## API Endpoints
+
+### GET `/api/speciality`
+
+Retrieve all specialties.
+
+**Response:**
+```json
+{
+  "specialities": [
+    {
+      "id": 1,
+      "name": "Cardiología",
+      "state": "Activa"
+    },
+    {
+      "id": 2,
+      "name": "Pediatría",
+      "state": "Activa"
+    }
+  ]
+}
+```
+
+### GET `/api/speciality/:id`
+
+Retrieve a specific specialty by ID.
+
+**Response:**
+```json
+{
+  "speciality": {
+    "id": 1,
+    "name": "Cardiología",
+    "state": "Activa"
+  }
+}
+```
+
+### POST `/api/speciality`
+
+Create a new specialty (Admin only).
+
+**Required Fields:**
+- name
+
+**Example Request:**
+```json
+{
+  "name": "Dermatología"
+}
+```
+
+### PATCH `/api/speciality/:id`
+
+Update a specialty (Admin only).
+
+**Required Fields:**
+- name, state
+
+**Example Request:**
+```json
+{
+  "name": "Dermatología Cosmética",
+  "state": "Activa"
+}
+```
+
+## State Management
+
+### Inactivating Specialties
+
+When a specialty is no longer offered by the clinic:
+
+1. Change the specialty state to "Inactive"
+2. Existing professionals keep their specialty assignment
+3. New professionals cannot be assigned to inactive specialties
+
+<Note>
+  Never delete specialties that have professionals assigned to them. Use the state field to mark them as inactive instead.
+</Note>
+
+### Reactivating Specialties
+
+If a specialty is offered again:
+
+1. Update the state back to "Active"
+2. The specialty becomes available for new professional assignments
+
+## Common Specialties
+
+Typical medical specialties in a clinic:
+
+- **Medicina General** (General Medicine)
+- **Cardiología** (Cardiology)
+- **Pediatría** (Pediatrics)
+- **Traumatología** (Traumatology)
+- **Dermatología** (Dermatology)
+- **Ginecología** (Gynecology)
+- **Oftalmología** (Ophthalmology)
+- **Odontología** (Dentistry)
+- **Psicología** (Psychology)
+- **Nutrición** (Nutrition)
+
+## Security
+
+<Note>
+  All specialty operations require JWT authentication. Create and update operations are restricted to administrators only.
+</Note>
+
+**Authentication Requirements:**
+- **GET requests**: Authenticated users only
+- **POST/PATCH requests**: Administrator role required
+
+## Database Relationships
+
+Specialties connect to:
+- **Professionals** (One-to-Many): Each specialty can have multiple professionals
+- **Appointments** (Indirectly): Through professionals, appointments are linked to specialties
+
+## Use Cases
+
+### Adding New Medical Services
+
+<Steps>
+  <Step title="Clinic Expands Services">
+    Clinic decides to offer a new medical service (e.g., Nutrition counseling).
+  </Step>
+  
+  <Step title="Create Specialty">
+    Administrator creates a new specialty called "Nutrición".
+  </Step>
+  
+  <Step title="Hire Professionals">
+    Clinic hires nutritionists and assigns them to the "Nutrición" specialty.
+  </Step>
+  
+  <Step title="Patients Can Book">
+    Patients can now search for and book appointments with nutritionists.
+  </Step>
+</Steps>
+
+### Filtering Professionals by Specialty
+
+Patients and staff can filter professionals by specialty:
+
+```
+GET /api/professionals?specialityID=3
+```
+
+This returns all professionals with the specified specialty, making it easy to find the right healthcare provider.
+
+## Reporting and Analytics
+
+Specialties enable useful analytics:
+
+- **Professional distribution** by specialty
+- **Appointment volume** by specialty
+- **Popular specialties** based on booking frequency
+- **Capacity planning** by specialty demand
+
+## Best Practices
+
+1. **Use consistent naming conventions** for specialties (e.g., all in Spanish or all in English)
+2. **Keep specialty names clear and specific** to avoid confusion
+3. **Use state management** instead of deleting specialties
+4. **Validate specialty exists and is active** before assigning to professionals
+5. **Group related services** under appropriate specialty names
+6. **Review specialty usage** periodically to identify unused categories
+7. **Coordinate with medical staff** when adding or changing specialties
+8. **Consider patient perspective** when naming specialties

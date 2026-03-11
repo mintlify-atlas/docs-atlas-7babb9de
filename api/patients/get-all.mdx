@@ -1,0 +1,175 @@
+---
+title: 'Get all patients'
+api: 'GET /patients'
+description: 'Retrieve a list of all patients with optional filtering'
+---
+
+## Authentication
+
+This endpoint requires a valid JWT token.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication. Include as `Bearer <token>`.
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="search" type="string">
+  Search patients by name, surname, or DNI. Performs a partial match search across these fields.
+</ParamField>
+
+<ParamField query="gender" type="string">
+  Filter patients by gender.
+</ParamField>
+
+<ParamField query="state" type="string">
+  Filter patients by state. Possible values:
+  - `Activo/a` - Active patient
+  - `Inactivo/a` - Inactive patient
+</ParamField>
+
+<ParamField query="socialWorkId" type="number">
+  Filter patients by social work ID. Must be a valid social work ID that exists in the system.
+</ParamField>
+
+## Response
+
+<ResponseField name="patients" type="object[]">
+  Array of patient objects.
+  
+  <Expandable title="Patient properties">
+    <ResponseField name="id" type="number">
+      Unique patient identifier.
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Patient's first name.
+    </ResponseField>
+    
+    <ResponseField name="surname" type="string">
+      Patient's last name.
+    </ResponseField>
+    
+    <ResponseField name="dni" type="number">
+      Patient's national identification number (DNI).
+    </ResponseField>
+    
+    <ResponseField name="birthdate" type="string">
+      Patient's date of birth in ISO 8601 format.
+    </ResponseField>
+    
+    <ResponseField name="gender" type="string">
+      Patient's gender.
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Patient's residential address.
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Patient's phone number.
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      Patient's email address.
+    </ResponseField>
+    
+    <ResponseField name="socialWorkId" type="number">
+      ID of the patient's social work.
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Patient's current state. Values: `Activo/a` or `Inactivo/a`.
+    </ResponseField>
+    
+    <ResponseField name="Obras_Sociale" type="object">
+      Associated social work information.
+      
+      <Expandable title="Social work properties">
+        <ResponseField name="name" type="string">
+          Social work name.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET https://api.clinica-vitalis.com/patients?state=Activo/a \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "patients": [
+    {
+      "id": 1,
+      "name": "María",
+      "surname": "González",
+      "dni": 12345678,
+      "birthdate": "1985-03-15T00:00:00.000Z",
+      "gender": "Femenino",
+      "address": "Av. Corrientes 1234, CABA",
+      "phone": "11-4567-8901",
+      "email": "maria.gonzalez@email.com",
+      "socialWorkId": 1,
+      "state": "Activo/a",
+      "Obras_Sociale": {
+        "name": "OSDE"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Juan",
+      "surname": "Pérez",
+      "dni": 23456789,
+      "birthdate": "1990-07-22T00:00:00.000Z",
+      "gender": "Masculino",
+      "address": "San Martín 567, CABA",
+      "phone": "11-2345-6789",
+      "email": "juan.perez@email.com",
+      "socialWorkId": 2,
+      "state": "Activo/a",
+      "Obras_Sociale": {
+        "name": "Swiss Medical"
+      }
+    }
+  ]
+}
+```
+
+## Error Responses
+
+### 401 Unauthorized
+
+Returned when the JWT token is missing or invalid.
+
+```json
+{
+  "msg": "Token inválido"
+}
+```
+
+### 404 Not Found
+
+Returned when no patients are found in the system.
+
+```json
+{
+  "msg": "No hay pacientes cargados en el sistema"
+}
+```
+
+### 500 Internal Server Error
+
+Returned when a server error occurs.
+
+```json
+{
+  "msg": "Error del servidor"
+}
+```

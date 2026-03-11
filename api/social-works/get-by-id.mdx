@@ -1,0 +1,132 @@
+---
+title: 'Get Social Work by ID'
+api: 'GET /socials_works/:id'
+---
+
+Retrieves detailed information about a specific social work (health insurance provider) by its ID.
+
+## Authentication
+
+Requires a valid JWT token in the Authorization header.
+
+```
+Authorization: Bearer {token}
+```
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The unique identifier of the social work to retrieve
+</ParamField>
+
+## Response
+
+<ResponseField name="socialWork" type="object">
+  Social work object containing detailed information
+  
+  <Expandable title="Properties">
+    <ResponseField name="id" type="number">
+      Unique identifier for the social work
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Name of the social work (health insurance provider)
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Current state of the social work. Values: `Activa` or `Inactiva`
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Physical address of the social work office
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Contact phone number (10-20 characters)
+    </ResponseField>
+    
+    <ResponseField name="webpage" type="string">
+      Website URL of the social work
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "socialWork": {
+    "id": 1,
+    "name": "OSDE",
+    "state": "Activa",
+    "address": "Av. Leandro N. Alem 1067, CABA",
+    "phone": "+54 11 4310-5555",
+    "webpage": "https://www.osde.com.ar"
+  }
+}
+```
+
+```json 404 - Social Work Not Found
+{
+  "msg": "No hay obra social cargada en el sistema"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "msg": "Token no válido"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</ResponseExample>
+
+## Code Examples
+
+<CodeGroup>
+```javascript JavaScript
+const token = 'your-jwt-token';
+const socialWorkId = 1;
+
+const response = await fetch(`https://api.clinicavitalis.com/socials_works/${socialWorkId}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+const data = await response.json();
+console.log(data.socialWork);
+```
+
+```python Python
+import requests
+
+token = 'your-jwt-token'
+social_work_id = 1
+url = f'https://api.clinicavitalis.com/socials_works/{social_work_id}'
+
+headers = {
+    'Authorization': f'Bearer {token}'
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+print(data['socialWork'])
+```
+
+```bash cURL
+curl -X GET "https://api.clinicavitalis.com/socials_works/1" \
+  -H "Authorization: Bearer your-jwt-token"
+```
+</CodeGroup>
+
+## Notes
+
+- The ID must be a valid social work identifier in the system
+- Returns complete information including contact details and current state
+- Useful for displaying detailed social work information in the UI
+- Can retrieve both active and inactive social works

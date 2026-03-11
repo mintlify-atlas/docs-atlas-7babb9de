@@ -1,0 +1,295 @@
+---
+title: Work Schedule Management
+description: Define and manage professional availability and working hours by day of week
+---
+
+## Overview
+
+The Work Schedule Management feature allows administrators to define when professionals are available to see patients. Each professional can have different schedules for different days of the week, enabling flexible workforce management.
+
+## Data Model
+
+Work schedules are structured as follows:
+
+```typescript
+interface IWorkSchedule {
+    id: number;
+    professionalID: number;     // Reference to Professional
+    dayOfWeek: number;          // 0 (Sunday) to 6 (Saturday)
+    startTime: string;          // TIME format (HH:MM:SS)
+    endTime: string;            // TIME format (HH:MM:SS)
+}
+```
+
+### Day of Week Values
+
+- **0** - Sunday (Domingo)
+- **1** - Monday (Lunes)
+- **2** - Tuesday (Martes)
+- **3** - Wednesday (Miércoles)
+- **4** - Thursday (Jueves)
+- **5** - Friday (Viernes)
+- **6** - Saturday (Sábado)
+
+## Key Features
+
+### Create Work Schedule
+
+Administrators can define work hours for professionals:
+
+<Steps>
+  <Step title="Select Professional">
+    Choose the professional for whom you're setting the schedule.
+  </Step>
+  
+  <Step title="Choose Day of Week">
+    Select a day (0-6) for which the professional will be available.
+  </Step>
+  
+  <Step title="Set Time Range">
+    Define start and end times in HH:MM:SS format.
+  </Step>
+  
+  <Step title="Validate Schedule">
+    System ensures:
+    - Time format is valid
+    - End time is after start time
+    - Professional doesn't already have a schedule for this day
+  </Step>
+  
+  <Step title="Save Schedule">
+    Work schedule is created and becomes active immediately.
+  </Step>
+</Steps>
+
+### Validation Rules
+
+Strict validation ensures schedule integrity from `backend/routes/workSchedule.ts:29-45`:
+
+```typescript
+check('professionalID').custom(existProfessionalById)
+check('dayOfWeek', 'El día debe ser un número entre 0 (Domingo) y 6 (Sábado)')
+    .isInt({ min: 0, max: 6 })
+check('startTime').custom(isValidTimeFormat)
+check('endTime').custom(isValidTimeFormat)
+check('endTime').custom(checkTimeRange)  // Ensures end > start
+```
+
+### Database Constraints
+
+The model enforces important business rules:
+
+```typescript
+// From backend/models/workSchedule.ts:33-48
+dayOfWeek: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    validate: {
+        min: 0,
+        max: 6
+    }
+}
+
+// Unique constraint from lines 50-56
+indexes: [
+    {
+        unique: true,
+        fields: ['professionalID', 'dayOfWeek'],
+        name: 'unique_schedule_day_per_pro'
+    }
+]
+```
+
+<Note>
+  Each professional can only have ONE schedule per day of the week. This prevents conflicting schedules for the same day.
+</Note>
+
+### View Work Schedules
+
+Work schedules can be retrieved:
+
+- **All schedules**: Complete list of all professional schedules
+- **By ID**: Specific schedule details
+- **With Professional**: Schedules are automatically included when retrieving professional information
+
+When viewing professionals, their work schedules are included:
+
+```typescript
+// From backend/controllers/professionals.ts:72-75
+{
+    model: WorkSchedule,
+    attributes: ['dayOfWeek', 'startTime', 'endTime']
+}
+```
+
+### Update Work Schedule
+
+Schedules can be modified as needed:
+
+<Steps>
+  <Step title="Locate Schedule">
+    Find the work schedule by ID.
+  </Step>
+  
+  <Step title="Update Times or Day">
+    Modify the day of week, start time, or end time.
+  </Step>
+  
+  <Step title="Re-validate">
+    System validates time format and ensures end time is after start time.
+  </Step>
+  
+  <Step title="Save Changes">
+    Updated schedule is saved and applies to future appointments.
+  </Step>
+</Steps>
+
+<Note>
+  Updating a work schedule does not affect existing appointments. It only applies to future appointment bookings.
+</Note>
+
+## Appointment Integration
+
+Work schedules are critical for appointment validation. When creating an appointment, the system:
+
+1. Checks if the professional has a work schedule for the appointment day
+2. Validates the appointment time falls within the professional's working hours
+3. Rejects appointments outside working hours
+
+This validation is performed by `checkProfessionalSchedule` in the appointment creation process.
+
+## API Endpoints
+
+### GET `/api/workSchedule`
+
+Retrieve all work schedules.
+
+**Response:**
+```json
+{
+  "workSchedules": [
+    {
+      "id": 1,
+      "professionalID": 5,
+      "dayOfWeek": 1,
+      "startTime": "09:00:00",
+      "endTime": "17:00:00"
+    }
+  ]
+}
+```
+
+### GET `/api/workSchedule/:id`
+
+Retrieve a specific work schedule by ID.
+
+### POST `/api/workSchedule`
+
+Create a new work schedule (Admin only).
+
+**Required Fields:**
+- professionalID, dayOfWeek, startTime, endTime
+
+**Example Request:**
+```json
+{
+  "professionalID": 5,
+  "dayOfWeek": 1,
+  "startTime": "09:00:00",
+  "endTime": "17:00:00"
+}
+```
+
+### PATCH `/api/workSchedule/:id`
+
+Update a work schedule (Admin only).
+
+**Required Fields:**
+- dayOfWeek, startTime, endTime
+
+## Time Format Requirements
+
+All times must be in **HH:MM:SS** format:
+
+- **Valid**: "09:00:00", "14:30:00", "18:45:00"
+- **Invalid**: "9:00", "14:30", "6pm"
+
+The system validates this through the `isValidTimeFormat` custom validator.
+
+## Use Cases
+
+### Regular Weekly Schedule
+
+For a professional working Monday to Friday, 9 AM to 5 PM:
+
+```json
+[
+  {"professionalID": 1, "dayOfWeek": 1, "startTime": "09:00:00", "endTime": "17:00:00"},
+  {"professionalID": 1, "dayOfWeek": 2, "startTime": "09:00:00", "endTime": "17:00:00"},
+  {"professionalID": 1, "dayOfWeek": 3, "startTime": "09:00:00", "endTime": "17:00:00"},
+  {"professionalID": 1, "dayOfWeek": 4, "startTime": "09:00:00", "endTime": "17:00:00"},
+  {"professionalID": 1, "dayOfWeek": 5, "startTime": "09:00:00", "endTime": "17:00:00"}
+]
+```
+
+### Part-Time Schedule
+
+For a professional working only mornings on Monday and Wednesday:
+
+```json
+[
+  {"professionalID": 2, "dayOfWeek": 1, "startTime": "08:00:00", "endTime": "13:00:00"},
+  {"professionalID": 2, "dayOfWeek": 3, "startTime": "08:00:00", "endTime": "13:00:00"}
+]
+```
+
+### Split Shift Schedule
+
+For a professional with morning and afternoon shifts, you would need to represent this differently since only one schedule per day is allowed. Consider using the full time range and managing breaks at the application level.
+
+## Security
+
+<Note>
+  All work schedule operations require JWT authentication. Create and update operations are restricted to administrators only.
+</Note>
+
+## Database Relationships
+
+Work schedules connect to:
+- **Professionals** (Many-to-One): Each schedule belongs to one professional
+- **Appointments** (Indirectly): Used for validation during appointment creation
+
+## Workflow Example
+
+<Steps>
+  <Step title="Professional Joins Clinic">
+    New professional is registered in the system.
+  </Step>
+  
+  <Step title="Define Availability">
+    Administrator sets up work schedules for each day the professional will work.
+  </Step>
+  
+  <Step title="Schedule Becomes Active">
+    The professional is now available for appointments on those days and times.
+  </Step>
+  
+  <Step title="Appointment Booking">
+    When patients book appointments, the system automatically checks work schedules.
+  </Step>
+  
+  <Step title="Update as Needed">
+    If professional availability changes, administrator updates the schedules.
+  </Step>
+</Steps>
+
+## Best Practices
+
+1. **Set up schedules immediately** after registering a new professional
+2. **Use consistent time formats** (HH:MM:SS) to avoid validation errors
+3. **Ensure end time is after start time** to prevent invalid schedules
+4. **One schedule per day** - the system enforces this with unique constraints
+5. **Update schedules in advance** when professional availability changes
+6. **Consider time zones** if your clinic operates across multiple time zones
+7. **Document schedule changes** for professional and administrative records
+8. **Validate existing appointments** before changing schedules significantly

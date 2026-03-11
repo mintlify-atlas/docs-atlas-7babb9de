@@ -1,0 +1,115 @@
+---
+title: 'Get Professional by ID'
+api: 'GET /professionals/:id'
+---
+
+Retrieves detailed information about a specific professional by their ID.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token (JWT) required for authentication.
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The unique identifier of the professional to retrieve.
+</ParamField>
+
+## Response
+
+<ResponseField name="professional" type="object">
+  Professional object with detailed information.
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="number">
+      Unique identifier for the professional.
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Professional's first name.
+    </ResponseField>
+    
+    <ResponseField name="surname" type="string">
+      Professional's last name.
+    </ResponseField>
+    
+    <ResponseField name="dni" type="number">
+      Professional's national identification number (DNI).
+    </ResponseField>
+    
+    <ResponseField name="birthdate" type="string">
+      Professional's date of birth (ISO 8601 format).
+    </ResponseField>
+    
+    <ResponseField name="gender" type="string">
+      Professional's gender.
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Professional's address.
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Professional's phone number.
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      Professional's email address.
+    </ResponseField>
+    
+    <ResponseField name="specialityID" type="number">
+      ID of the professional's specialty.
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Current state of the professional (Activo/a, Inactivo/a, or Licencia).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="Success">
+  Professional retrieved successfully.
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid JWT token.
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  Professional not found in the system.
+</ResponseField>
+
+<ResponseField name="500" type="Server Error">
+  Internal server error occurred.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://api.clinicavitalis.com/professionals/1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "professional": {
+    "id": 1,
+    "name": "Juan",
+    "surname": "Pérez",
+    "dni": 12345678,
+    "birthdate": "1985-03-15T00:00:00.000Z",
+    "gender": "Masculino",
+    "address": "Av. Corrientes 1234, Buenos Aires",
+    "phone": "+54 11 1234-5678",
+    "email": "juan.perez@clinicavitalis.com",
+    "specialityID": 1,
+    "state": "Activo/a"
+  }
+}
+```

@@ -1,0 +1,165 @@
+---
+title: 'Get All Social Works'
+api: 'GET /socials_works'
+---
+
+Retrieves a list of all social works (health insurance providers) registered in the system.
+
+## Authentication
+
+Requires a valid JWT token in the Authorization header.
+
+```
+Authorization: Bearer {token}
+```
+
+## Query Parameters
+
+<ParamField query="search" type="string" optional>
+  Search filter to find social works by name. Uses partial matching (LIKE query).
+  
+  Example: `?search=OSDE`
+</ParamField>
+
+<ParamField query="state" type="string" optional>
+  Filter social works by state.
+  
+  **Allowed values:**
+  - `Activa` - Active social work
+  - `Inactiva` - Inactive social work
+  
+  Example: `?state=Activa`
+</ParamField>
+
+## Response
+
+<ResponseField name="socialsWorks" type="array">
+  Array of social work objects
+  
+  <Expandable title="Social Work Object">
+    <ResponseField name="id" type="number">
+      Unique identifier for the social work
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Name of the social work (health insurance provider)
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Current state of the social work. Values: `Activa` or `Inactiva`
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Physical address of the social work office
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Contact phone number (10-20 characters)
+    </ResponseField>
+    
+    <ResponseField name="webpage" type="string">
+      Website URL of the social work
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "socialsWorks": [
+    {
+      "id": 1,
+      "name": "OSDE",
+      "state": "Activa",
+      "address": "Av. Leandro N. Alem 1067, CABA",
+      "phone": "+54 11 4310-5555",
+      "webpage": "https://www.osde.com.ar"
+    },
+    {
+      "id": 2,
+      "name": "Swiss Medical",
+      "state": "Activa",
+      "address": "Av. Callao 384, CABA",
+      "phone": "+54 11 5777-7777",
+      "webpage": "https://www.swissmedical.com.ar"
+    },
+    {
+      "id": 3,
+      "name": "Galeno",
+      "state": "Inactiva",
+      "address": "Av. Córdoba 1442, CABA",
+      "phone": "0800-444-1200",
+      "webpage": "https://www.galeno.com.ar"
+    }
+  ]
+}
+```
+
+```json 404 - No Social Works Found
+{
+  "msg": "No hay obras sociales cargadas en el sistema"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "msg": "Token no válido"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</ResponseExample>
+
+## Code Examples
+
+<CodeGroup>
+```javascript JavaScript
+const token = 'your-jwt-token';
+
+const response = await fetch('https://api.clinicavitalis.com/socials_works?state=Activa', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+const data = await response.json();
+console.log(data.socialsWorks);
+```
+
+```python Python
+import requests
+
+token = 'your-jwt-token'
+url = 'https://api.clinicavitalis.com/socials_works'
+
+headers = {
+    'Authorization': f'Bearer {token}'
+}
+
+params = {
+    'state': 'Activa',
+    'search': 'OSDE'
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+print(data['socialsWorks'])
+```
+
+```bash cURL
+curl -X GET "https://api.clinicavitalis.com/socials_works?state=Activa" \
+  -H "Authorization: Bearer your-jwt-token"
+```
+</CodeGroup>
+
+## Notes
+
+- The search parameter performs a partial match on the social work name
+- Results include all fields for each social work
+- Both active and inactive social works are returned unless filtered by state
+- Returns an empty array if no social works match the filter criteria

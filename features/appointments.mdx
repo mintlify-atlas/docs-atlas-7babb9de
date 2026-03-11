@@ -1,0 +1,322 @@
+---
+title: Appointment Scheduling
+description: Comprehensive appointment management with conflict detection and automatic status updates
+---
+
+## Overview
+
+The Appointment Scheduling feature is the core of Clínica Vitalis, enabling efficient management of patient appointments with healthcare professionals. The system includes intelligent conflict detection, automatic status updates, and comprehensive filtering capabilities.
+
+## Data Model
+
+Appointments are structured with the following schema:
+
+```typescript
+interface IAppointment {
+    id: number;
+    patientID: number;          // Reference to Patient
+    professionalID: number;     // Reference to Professional
+    date: string;               // DATEONLY format (YYYY-MM-DD)
+    time: string;               // TIME format (HH:MM:SS)
+    description: string;        // Appointment reason/notes
+    state?: string;             // pending | completed | cancelled | noshow
+}
+```
+
+### Appointment States
+
+Appointments can have four states:
+
+- **Pendiente** (Pending): Appointment is scheduled and waiting
+- **Atendido** (Completed): Patient was seen by the professional
+- **Cancelado** (Cancelled): Appointment was cancelled
+- **Ausente** (No-show): Patient did not attend (automatically set)
+
+## Key Features
+
+### Create Appointment
+
+The system performs extensive validation when creating appointments:
+
+<Steps>
+  <Step title="Select Patient and Professional">
+    Choose an active patient and professional from the system.
+  </Step>
+  
+  <Step title="Choose Date and Time">
+    Select appointment date and time slot.
+  </Step>
+  
+  <Step title="Conflict Detection">
+    System validates:
+    - Patient doesn't have another appointment at the same time
+    - Professional is available at the requested time
+    - Time falls within professional's work schedule
+  </Step>
+  
+  <Step title="Add Description">
+    Enter appointment reason or clinical notes.
+  </Step>
+  
+  <Step title="Confirm Booking">
+    Appointment is created with "Pending" state.
+  </Step>
+</Steps>
+
+### Advanced Validation Rules
+
+The appointment system includes sophisticated validation from `backend/routes/appointments.ts:29-46`:
+
+```typescript
+check("patientID").custom(existDNIPatientById)
+check("professionalID").custom(existDNIProfessionalById)
+check("date").custom(checkPatientAvailability)
+check().custom(checkAppointmentAvailability)
+check().custom(checkProfessionalSchedule)
+```
+
+### Conflict Prevention
+
+The database enforces uniqueness constraints to prevent double-booking:
+
+```typescript
+// From backend/models/appointments.ts:61-72
+indexes: [
+    {
+        unique: true,
+        fields: ['patientID', 'date', 'time'],
+        name: 'unique_appointment_per_patient'
+    },
+    {
+        unique: true,
+        fields: ['professionalID', 'date','time'],
+        name: 'unique_appointment_per_pro'
+    }
+]
+```
+
+<Note>
+  The system prevents:
+  - A patient from having multiple appointments at the same date/time
+  - A professional from being double-booked at the same date/time
+</Note>
+
+### Automatic No-Show Detection
+
+The system automatically marks appointments as "No-show" when:
+
+- Appointment date has passed
+- Appointment time has passed for today's date
+- Appointment state is still "Pending"
+
+This happens automatically when retrieving appointments:
+
+```typescript
+// From backend/controllers/appointments.ts:32-68
+const noshowAppointments = async () => {
+    const now = new Date()
+    const today = now.toISOString().slice(0, 10);
+    const currentTime = now.toTimeString().slice(0, 5);
+    
+    await Appointments.update(
+        { state: STATES_APPOINTMENTS.noshow },
+        {
+            where: {
+                state: STATES_APPOINTMENTS.pending,
+                [Op.or]: [
+                    { date: { [Op.lt]: today } },
+                    { date: today, time: { [Op.lt]: currentTime } }
+                ]
+            }
+        }
+    )
+}
+```
+
+### Search and Filter Appointments
+
+Comprehensive filtering options are available:
+
+**Search by:**
+- Patient DNI (partial match)
+
+**Filter by:**
+- Professional ID
+- Appointment state
+
+**Special Views:**
+- All appointments (ordered by date DESC)
+- Today's appointments (ordered by time ASC)
+- Daily statistics (count and cancellations)
+
+### View Appointment Details
+
+Appointment listings include complete relational data:
+
+```typescript
+// From backend/controllers/appointments.ts:106-124
+include: [
+    {
+        model: Patients,
+        attributes: ['name', 'surname', 'dni']
+    },
+    {
+        model: Professionals,
+        attributes: ['name', 'surname', 'dni'],
+        include: [
+            {
+                model: Speciality,
+                attributes: ['name']
+            }
+        ]
+    }
+]
+```
+
+This provides a complete view including:
+- Patient information
+- Professional information
+- Professional's specialty
+- Appointment date, time, and state
+
+### Update Appointment
+
+Appointments can be updated with full re-validation:
+
+<Steps>
+  <Step title="Locate Appointment">
+    Find the appointment by ID or through search.
+  </Step>
+  
+  <Step title="Modify Details">
+    Update date, time, professional, patient, or state.
+  </Step>
+  
+  <Step title="Re-validate Conflicts">
+    System checks for scheduling conflicts with the new date/time.
+  </Step>
+  
+  <Step title="Save Changes">
+    Updated appointment is saved to the database.
+  </Step>
+</Steps>
+
+<Note>
+  When updating appointments, all validation rules are re-applied including conflict detection and work schedule verification.
+</Note>
+
+## API Endpoints
+
+### GET `/api/appointments`
+
+Retrieve appointments with optional filters.
+
+**Query Parameters:**
+- `search` - Patient DNI search
+- `professionalID` - Filter by professional
+- `state` - Filter by appointment state
+
+**Response:**
+```json
+{
+  "appointments": [...],
+  "appointmentsOfToday": [...],
+  "countAppointments": 15,
+  "countCancelled": 2
+}
+```
+
+### GET `/api/appointments/:id`
+
+Retrieve a specific appointment by ID.
+
+### POST `/api/appointments`
+
+Create a new appointment (Admin only).
+
+**Required Fields:**
+- patientID, professionalID, date, time, description
+
+**Response:**
+```json
+{
+  "appointment": { ... }
+}
+```
+
+### PATCH `/api/appointments/:id`
+
+Update an appointment (Admin only).
+
+**Required Fields:**
+- All fields from POST plus `state`
+
+## Daily Statistics
+
+The system automatically provides daily metrics:
+
+- Total appointments for today
+- Cancelled appointments for today
+- Appointment list sorted by time
+
+This is useful for:
+- Reception desk displays
+- Daily workload planning
+- Professional schedules
+
+## Security
+
+<Note>
+  All appointment operations require JWT authentication. Create and update operations require administrator privileges.
+</Note>
+
+## Database Relationships
+
+Appointments connect:
+- **Patients** (Many-to-One): Each appointment belongs to one patient
+- **Professionals** (Many-to-One): Each appointment is with one professional
+- **Specialties** (Through Professional): Specialty information is accessible through the professional relationship
+
+## Workflow Example
+
+Typical appointment booking workflow:
+
+<Steps>
+  <Step title="Patient Requests Appointment">
+    Patient calls or visits to schedule an appointment.
+  </Step>
+  
+  <Step title="Check Professional Availability">
+    Staff checks which professionals are available for the requested specialty.
+  </Step>
+  
+  <Step title="Verify Work Schedule">
+    System ensures the requested time falls within the professional's work hours.
+  </Step>
+  
+  <Step title="Check for Conflicts">
+    System validates no double-booking for patient or professional.
+  </Step>
+  
+  <Step title="Create Appointment">
+    Appointment is booked with "Pending" state.
+  </Step>
+  
+  <Step title="Patient Attends">
+    On appointment day, reception marks appointment as "Completed" after consultation.
+  </Step>
+  
+  <Step title="Automatic Cleanup">
+    If patient doesn't attend and appointment passes, system marks as "No-show".
+  </Step>
+</Steps>
+
+## Best Practices
+
+1. **Always check professional work schedules** before booking appointments
+2. **Validate patient and professional exist and are active** before creating appointments
+3. **Use state transitions properly**: Pending → Completed/Cancelled (manual) or Pending → No-show (automatic)
+4. **Monitor daily statistics** to track clinic operation efficiency
+5. **Filter by professional** to see individual workload distribution
+6. **Update states promptly** after appointments to maintain accurate records
+7. **Never delete appointments** - use state changes for record keeping

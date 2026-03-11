@@ -1,0 +1,378 @@
+---
+title: Social Works Management
+description: Manage insurance providers and healthcare coverage organizations
+---
+
+## Overview
+
+The Social Works Management feature handles insurance providers (obras sociales) in the Clínica Vitalis system. Social works represent health insurance organizations that provide coverage for patients, and each patient must be affiliated with a social work for billing and coverage purposes.
+
+## Data Model
+
+Social works are structured with comprehensive information:
+
+```typescript
+interface ISocialsWorks {
+    id: number;
+    name: string;       // Unique insurance provider name
+    state?: string;     // active | inactive
+    address: string;    // Physical address of the organization
+    phone: string;      // Contact phone number
+    webpage: string;    // Official website URL
+}
+```
+
+### Social Work States
+
+- **Activa** (Active): Insurance provider is currently accepted by the clinic
+- **Inactiva** (Inactive): Insurance provider is no longer accepted for new patients
+
+## Key Features
+
+### Create Social Work
+
+Administrators can register new insurance providers:
+
+<Steps>
+  <Step title="Enter Basic Information">
+    Provide the insurance provider's name (must be unique).
+  </Step>
+  
+  <Step title="Add Contact Details">
+    Enter physical address, phone number (10-20 characters), and website URL.
+  </Step>
+  
+  <Step title="Validate Information">
+    System validates:
+    - Name uniqueness
+    - Phone number format (numbers, spaces, dashes only)
+    - All required fields are present
+  </Step>
+  
+  <Step title="Create Record">
+    Social work is created with "Active" state by default.
+  </Step>
+</Steps>
+
+<Note>
+  Social work names must be unique to prevent duplicate insurance provider registrations.
+</Note>
+
+### Validation Rules
+
+Strict validation ensures data quality from `backend/routes/socialsWorks.ts:29-43`:
+
+```typescript
+check("name", "El nombre es obligatorio").not().isEmpty()
+check("name").custom(existNameSocialWork)  // Ensures uniqueness
+check("address", "La dirección es obligatoria").not().isEmpty()
+check("phone", "El teléfono es obligatorio")
+    .not().isEmpty()
+    .isLength({ min: 10, max: 20 })
+    .withMessage("El teléfono debe tener entre 10 y 20 caracteres")
+    .matches(/^[0-9\s\-\+]*$/)
+    .withMessage("El teléfono solo puede contener números, guiones o espacios")
+check("webpage", "La dirección es obligatoria").not().isEmpty()
+```
+
+### Database Constraints
+
+The model enforces important business rules:
+
+```typescript
+// From backend/models/socialsWorks.ts:25-46
+name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true        // Database-level uniqueness
+}
+state: {
+    type: DataTypes.ENUM(...Object.values(STATES_SOCIALSWORKS)),
+    allowNull: false,
+    defaultValue: STATES_SOCIALSWORKS.active
+}
+address: {
+    type: DataTypes.STRING,
+    allowNull: false,
+}
+phone: {
+    type: DataTypes.STRING,
+    allowNull: false,
+}
+webpage: {
+    type: DataTypes.STRING,
+    allowNull: false,
+}
+```
+
+### View Social Works
+
+Social works can be retrieved:
+
+- **All social works**: Complete list including active and inactive providers
+- **By ID**: Specific social work details
+- **With Patients**: When viewing patients, their social work information is included
+
+### Update Social Work
+
+Administrators can modify insurance provider information:
+
+<Steps>
+  <Step title="Locate Social Work">
+    Find the insurance provider by ID or from the list.
+  </Step>
+  
+  <Step title="Update Information">
+    Modify name, address, phone, webpage, or state as needed.
+  </Step>
+  
+  <Step title="Validate Changes">
+    System validates name uniqueness (excluding current record) and all required fields.
+  </Step>
+  
+  <Step title="Save Changes">
+    Updated information is persisted to the database.
+  </Step>
+</Steps>
+
+<Note>
+  When updating a social work's name, the system ensures the new name doesn't conflict with other social works.
+</Note>
+
+## Patient Integration
+
+Social works are directly linked to patients:
+
+### Assignment
+
+Each patient must be affiliated with a social work:
+
+```typescript
+// From backend/models/patients.ts:66-73
+socialWorkId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+        model: "Obras_Sociales",
+        key: "id"
+    }
+}
+```
+
+### Validation
+
+Before assigning a patient to a social work, the system validates:
+- Social work exists in the database
+- Social work ID is valid
+
+This is performed by the `existSocialWorkById` custom validator in patient routes.
+
+## API Endpoints
+
+### GET `/api/socialsWorks`
+
+Retrieve all social works.
+
+**Response:**
+```json
+{
+  "socialsWorks": [
+    {
+      "id": 1,
+      "name": "OSDE",
+      "state": "Activa",
+      "address": "Av. Corrientes 1234, CABA",
+      "phone": "+54 11 4567-8900",
+      "webpage": "https://www.osde.com.ar"
+    },
+    {
+      "id": 2,
+      "name": "Swiss Medical",
+      "state": "Activa",
+      "address": "Av. Libertador 5678, CABA",
+      "phone": "+54 11 5555-1234",
+      "webpage": "https://www.swissmedical.com.ar"
+    }
+  ]
+}
+```
+
+### GET `/api/socialsWorks/:id`
+
+Retrieve a specific social work by ID.
+
+**Response:**
+```json
+{
+  "socialWork": {
+    "id": 1,
+    "name": "OSDE",
+    "state": "Activa",
+    "address": "Av. Corrientes 1234, CABA",
+    "phone": "+54 11 4567-8900",
+    "webpage": "https://www.osde.com.ar"
+  }
+}
+```
+
+### POST `/api/socialsWorks`
+
+Create a new social work (Admin only).
+
+**Required Fields:**
+- name, address, phone, webpage
+
+**Example Request:**
+```json
+{
+  "name": "Medicus",
+  "address": "Av. del Libertador 6810, CABA",
+  "phone": "+54 11 4000-7500",
+  "webpage": "https://www.medicus.com.ar"
+}
+```
+
+### PATCH `/api/socialsWorks/:id`
+
+Update a social work (Admin only).
+
+**Required Fields:**
+- name, state, address, phone, webpage
+
+**Example Request:**
+```json
+{
+  "name": "Medicus",
+  "state": "Activa",
+  "address": "Av. del Libertador 6810, CABA",
+  "phone": "+54 11 4000-7500",
+  "webpage": "https://www.medicus.com.ar"
+}
+```
+
+## State Management
+
+### Inactivating Social Works
+
+When the clinic stops accepting an insurance provider:
+
+1. Update the social work state to "Inactive"
+2. Existing patients keep their affiliation
+3. New patients cannot be registered with inactive social works
+4. Contact information remains accessible for billing and records
+
+<Note>
+  Never delete social works that have patients assigned to them. Use the state field to mark them as inactive.
+</Note>
+
+### Reactivating Social Works
+
+If the clinic resumes accepting an insurance provider:
+
+1. Update the state back to "Active"
+2. The social work becomes available for new patient registrations
+
+## Phone Number Format
+
+Phone numbers must meet specific criteria:
+
+- **Length**: Between 10 and 20 characters
+- **Allowed characters**: Numbers, spaces, dashes (-), and plus sign (+)
+- **Examples**:
+  - Valid: "+54 11 4567-8900", "011-4567-8900", "01145678900"
+  - Invalid: "123" (too short), "phone" (contains letters)
+
+## Use Cases
+
+### Adding New Insurance Provider
+
+<Steps>
+  <Step title="Clinic Signs Agreement">
+    Clinic establishes a contract with a new insurance provider.
+  </Step>
+  
+  <Step title="Gather Information">
+    Collect provider's name, contact details, and website.
+  </Step>
+  
+  <Step title="Register in System">
+    Administrator creates the social work with all required information.
+  </Step>
+  
+  <Step title="Available for Patients">
+    Patients can now be registered with this insurance provider.
+  </Step>
+</Steps>
+
+### Updating Contact Information
+
+When an insurance provider changes their contact details:
+
+1. Locate the social work in the system
+2. Update the address, phone, or webpage as needed
+3. Save changes for future reference
+
+### Filtering Patients by Insurance
+
+Staff can filter patients by their insurance provider:
+
+```
+GET /api/patients?socialWorkId=1
+```
+
+This is useful for:
+- Billing purposes
+- Insurance-specific reporting
+- Coverage verification
+
+## Common Social Works (Argentina)
+
+Typical insurance providers in Argentina:
+
+- **OSDE** - Organización de Servicios Directos Empresarios
+- **Swiss Medical**
+- **OSECAC** - Obra Social de Empleados de Comercio
+- **IOMA** - Instituto de Obra Médico Asistencial
+- **PAMI** - Programa de Atención Médica Integral
+- **Medicus**
+- **Galeno**
+- **OSPE** - Obra Social del Personal de la Edificación
+- **OSDEPYM** - Obra Social de Empresarios, Profesionales y Monotributistas
+
+## Security
+
+<Note>
+  All social work operations require JWT authentication. Create and update operations are restricted to administrators only.
+</Note>
+
+**Authentication Requirements:**
+- **GET requests**: Authenticated users only
+- **POST/PATCH requests**: Administrator role required
+
+## Database Relationships
+
+Social works connect to:
+- **Patients** (One-to-Many): Each social work can have multiple affiliated patients
+- **Appointments** (Indirectly): Through patients, appointments are linked to insurance providers
+
+## Reporting and Billing
+
+Social work information is essential for:
+
+- **Patient affiliation tracking**
+- **Insurance billing and claims**
+- **Coverage verification**
+- **Patient distribution by insurance provider**
+- **Insurance provider contact for authorizations**
+
+## Best Practices
+
+1. **Keep contact information updated** for effective communication with insurance providers
+2. **Validate insurance provider exists and is active** before registering patients
+3. **Use consistent naming** for insurance providers (official names)
+4. **Use state management** instead of deleting social works
+5. **Maintain complete contact information** including phone and website
+6. **Filter by active state** when showing options for new patient registration
+7. **Document insurance agreements** and update states when contracts change
+8. **Regularly review inactive social works** for potential reactivation
+9. **Keep website URLs current** for easy reference to coverage information

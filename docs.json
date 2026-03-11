@@ -1,122 +1,136 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "name": "Clínica Vitalis",
   "theme": "mint",
-  "name": "Mint Starter Kit",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#94cb04",
+    "light": "#545454",
+    "dark": "#94cb04"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.png",
+  "logo": {
+    "light": "/logo.png",
+    "dark": "/logo.png"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Guardatti/clinica-vitalis"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Guardatti/clinica-vitalis"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "features"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Features",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "features/professionals",
+              "features/patients",
+              "features/appointments",
+              "features/work-schedules",
+              "features/specialties",
+              "features/social-works"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Authentication",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "auth/overview",
+              "auth/user-management",
+              "auth/jwt-tokens"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Deployment",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "deployment/installation",
+              "deployment/configuration",
+              "deployment/database-setup"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Authentication",
             "pages": [
-              "api-reference/introduction"
+              "api/auth/register",
+              "api/auth/login"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Professionals",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/professionals/get-all",
+              "api/professionals/get-by-id",
+              "api/professionals/create",
+              "api/professionals/update"
+            ]
+          },
+          {
+            "group": "Patients",
+            "pages": [
+              "api/patients/get-all",
+              "api/patients/get-by-id",
+              "api/patients/create",
+              "api/patients/update"
+            ]
+          },
+          {
+            "group": "Appointments",
+            "pages": [
+              "api/appointments/get-all",
+              "api/appointments/get-by-id",
+              "api/appointments/create",
+              "api/appointments/update"
+            ]
+          },
+          {
+            "group": "Work Schedules",
+            "pages": [
+              "api/work-schedules/get-all",
+              "api/work-schedules/get-by-id",
+              "api/work-schedules/create",
+              "api/work-schedules/update"
+            ]
+          },
+          {
+            "group": "Specialties",
+            "pages": [
+              "api/specialties/get-all",
+              "api/specialties/get-by-id",
+              "api/specialties/create",
+              "api/specialties/update"
+            ]
+          },
+          {
+            "group": "Social Works",
+            "pages": [
+              "api/social-works/get-all",
+              "api/social-works/get-by-id",
+              "api/social-works/create",
+              "api/social-works/update"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

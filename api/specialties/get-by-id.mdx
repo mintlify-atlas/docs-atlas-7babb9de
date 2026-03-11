@@ -1,0 +1,330 @@
+---
+title: 'Get Specialty by ID'
+description: 'Retrieve a single medical specialty by its ID'
+api: 'GET /specialities/:id'
+---
+
+## Overview
+
+Retrieves a single medical specialty by its unique identifier.
+
+## Authentication
+
+<Note>
+  This endpoint requires authentication via JWT token. Include the token in the `Authorization` header.
+</Note>
+
+**Required**: JWT token (any authenticated user)
+
+**Middleware chain**:
+- `validatorJWT` - Validates JWT token (backend/middlewares/validatorJWT.ts)
+- `collectionErrors` - Handles validation errors (backend/middlewares/collectionErrors.ts)
+
+**Authorization**: No admin privileges required - available to all authenticated users.
+
+## Endpoint
+
+```
+GET /specialities/:id
+```
+
+**Implementation**: `backend/controllers/speciality.ts:72`
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The unique identifier of the specialty to retrieve.
+
+  **Validation**: Must be a valid numeric ID that exists in the database.
+
+  **Examples**:
+  - `1` - Retrieves specialty with ID 1
+  - `25` - Retrieves specialty with ID 25
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+```bash cURL
+curl -X GET "http://localhost:3000/specialities/1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```javascript JavaScript (Fetch)
+const specialityId = 1;
+
+const response = await fetch(`http://localhost:3000/specialities/${specialityId}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data.speciality);
+```
+
+```typescript TypeScript (Axios)
+import axios from 'axios';
+
+const specialityId = 1;
+
+const { data } = await axios.get(`/specialities/${specialityId}`, {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
+
+console.log(data.speciality);
+```
+
+```typescript React Hook Example
+import { useState, useEffect } from 'react';
+
+function useSpeciality(id: number) {
+  const [speciality, setSpeciality] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchSpeciality = async () => {
+      try {
+        const response = await fetch(`/specialities/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Specialty not found');
+        }
+        
+        const data = await response.json();
+        setSpeciality(data.speciality);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSpeciality();
+  }, [id]);
+
+  return { speciality, loading, error };
+}
+```
+</CodeGroup>
+
+## Response
+
+<ResponseField name="speciality" type="object" required>
+  The specialty object.
+
+  <Expandable title="Specialty Object Properties">
+    <ResponseField name="id" type="number" required>
+      Unique identifier for the specialty (auto-increment).
+    </ResponseField>
+
+    <ResponseField name="name" type="string" required>
+      Name of the medical specialty. Must be unique across the system.
+
+      **Examples**: "Cardiología", "Pediatría", "Neurología"
+    </ResponseField>
+
+    <ResponseField name="state" type="string" required>
+      Current state of the specialty.
+
+      **Possible values**:
+      - `Activa` - Specialty is active and available
+      - `Inactiva` - Specialty is inactive
+
+      **Default**: `Activa`
+    </ResponseField>
+
+    <ResponseField name="createdAt" type="string">
+      ISO 8601 timestamp when the specialty was created.
+    </ResponseField>
+
+    <ResponseField name="updatedAt" type="string">
+      ISO 8601 timestamp when the specialty was last updated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Response Examples
+
+<CodeGroup>
+```json 200 - Success (Active Specialty)
+{
+  "speciality": {
+    "id": 1,
+    "name": "Cardiología",
+    "state": "Activa",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+```json 200 - Success (Inactive Specialty)
+{
+  "speciality": {
+    "id": 3,
+    "name": "Neurología",
+    "state": "Inactiva",
+    "createdAt": "2024-01-15T10:32:00.000Z",
+    "updatedAt": "2024-02-01T14:20:00.000Z"
+  }
+}
+```
+
+```json 404 - Not Found
+{
+  "msg": "No hay especialidad cargada en el sistema"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "msg": "Token no válido"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</CodeGroup>
+
+## Status Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Success - Returns the specialty object |
+| `401` | Unauthorized - Invalid or missing JWT token |
+| `404` | Not Found - Specialty with the given ID does not exist |
+| `500` | Server Error - Database or internal error |
+
+## Implementation Details
+
+### Database Query
+
+The endpoint uses Sequelize's `findByPk` (find by primary key) method:
+
+```typescript
+const { id } = req.params;
+
+const speciality = await Speciality.findByPk(id)
+
+if (!speciality) {
+  res.status(404).json({
+    msg: "No hay especialidad cargada en el sistema"
+  })
+  return
+}
+
+res.status(200).json({
+  speciality
+})
+```
+
+**Source**: `backend/controllers/speciality.ts:76-91`
+
+### Model Definition
+
+The Speciality model is defined with the following schema:
+
+```typescript
+export const Speciality = sequelize.define('Especialidades', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  state: {
+    type: DataTypes.ENUM(...Object.values(STATES_SPECIALITIES)),
+    allowNull: false,
+    defaultValue: STATES_SPECIALITIES.active
+  }
+})
+```
+
+**Source**: `backend/models/speciality.ts:16-32`
+
+## Common Use Cases
+
+### Fetch specialty details for display
+
+```typescript
+const response = await fetch(`/specialities/${id}`, {
+  headers: { Authorization: `Bearer ${token}` }
+});
+
+if (response.ok) {
+  const { speciality } = await response.json();
+  console.log(`Specialty: ${speciality.name} (${speciality.state})`);
+} else {
+  console.error('Specialty not found');
+}
+```
+
+### Pre-populate edit form
+
+```typescript
+// Fetch specialty data before showing edit form
+const response = await fetch(`/specialities/${id}`, {
+  headers: { Authorization: `Bearer ${token}` }
+});
+
+const { speciality } = await response.json();
+
+// Use data to populate form fields
+setFormData({
+  name: speciality.name,
+  state: speciality.state
+});
+```
+
+### Verify specialty exists
+
+```typescript
+try {
+  const response = await fetch(`/specialities/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  
+  if (!response.ok) {
+    throw new Error('Specialty not found');
+  }
+  
+  const { speciality } = await response.json();
+  return speciality;
+} catch (error) {
+  // Handle specialty not found
+  console.error(error);
+  return null;
+}
+```
+
+## Related Endpoints
+
+- [Get All Specialties](/api/specialties/get-all) - Retrieve list of all specialties
+- [Create Specialty](/api/specialties/create) - Add a new specialty
+- [Update Specialty](/api/specialties/update) - Modify this specialty
+
+## Notes
+
+<Note>
+  This endpoint returns the specialty regardless of its state (active or inactive). If you need to filter by state, use the [Get All Specialties](/api/specialties/get-all) endpoint with the `state` query parameter.
+</Note>
+
+- The endpoint does not validate the ID format in the route handler
+- Invalid IDs (non-numeric or non-existent) will return 404
+- Sequelize automatically handles type conversion for the numeric ID
+- The specialty object includes timestamps (`createdAt` and `updatedAt`) automatically added by Sequelize

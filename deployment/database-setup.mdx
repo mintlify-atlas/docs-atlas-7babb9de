@@ -1,0 +1,487 @@
+---
+title: 'Database Setup'
+description: 'SQLite database configuration and Sequelize schema for Clínica Vitalis'
+icon: 'database'
+---
+
+## Overview
+
+Clínica Vitalis uses **SQLite** as its database engine with **Sequelize** as the ORM (Object-Relational Mapping) layer. The database is automatically initialized when the server starts for the first time.
+
+## Database Configuration
+
+### Connection Settings
+
+The database connection is configured in `backend/database/config.ts:4-7`:
+
+```typescript
+import { Sequelize } from "sequelize";
+
+export const sequelize = new Sequelize({
+  dialect: "sqlite",
+  storage: "./data/hospital.sqlite"
+})
+```
+
+**Key settings**:
+- **Dialect**: SQLite (file-based database)
+- **Storage path**: `./data/hospital.sqlite` (relative to backend directory)
+- **No credentials required**: SQLite is embedded and doesn't require authentication
+
+<Note>
+  The database file will be created automatically in `backend/data/hospital.sqlite` when the server starts. Ensure the `data/` directory has write permissions.
+</Note>
+
+## Database Initialization
+
+The database schema is automatically synchronized when the server starts. This process is handled in `backend/models/server.ts:79-81`:
+
+```typescript
+async connectionToDB(): Promise<void> {
+  await sequelize.sync()
+}
+```
+
+<Steps>
+  <Step title="Server Starts">
+    The `Server` constructor is called when the application starts (`backend/app.ts`).
+  </Step>
+
+  <Step title="Associations Established">
+    Model associations (relationships) are defined via `establishAssociations()` method.
+  </Step>
+
+  <Step title="Database Sync">
+    `sequelize.sync()` creates tables if they don't exist, based on the defined models.
+  </Step>
+
+  <Step title="Server Ready">
+    The server starts listening for requests after database initialization.
+  </Step>
+</Steps>
+
+### First-Time Setup
+
+On first run:
+
+```bash
+cd backend
+pnpm run dev
+```
+
+Sequelize will:
+1. Create the `data/` directory if it doesn't exist
+2. Create the `hospital.sqlite` database file
+3. Create all tables based on the models
+4. Create indexes for performance optimization
+
+## Database Schema
+
+The database consists of 7 main tables with relationships:
+
+### Entity Relationship Diagram
+
+```
+Usuarios (Users)
+
+Especialidades (Specialties) ──< Profesionales (Professionals) >──┐
+                                      │                            │
+                                      │                            │
+Obras_Sociales (Social Works) ──< Pacientes (Patients)            │
+                                      │                            │
+                                      └────> Turnos (Appointments) <┘
+                                      
+Profesionales ──< Horarios_Trabajo (Work Schedules)
+```
+
+### Tables
+
+#### 1. Usuarios (Users)
+
+**Purpose**: System users with authentication credentials
+
+**Model**: `backend/models/user.ts:18-46`
+
+| Column   | Type    | Constraints          | Description                    |
+|----------|---------|----------------------|--------------------------------|
+| id       | INTEGER | PRIMARY KEY, AUTO    | Unique user identifier         |
+| name     | STRING  | NOT NULL             | User's first name              |
+| surname  | STRING  | NOT NULL             | User's last name               |
+| email    | STRING  | UNIQUE, NOT NULL     | Email for login                |
+| password | STRING  | NOT NULL             | Bcrypt hashed password         |
+| rol      | STRING  | NOT NULL, DEFAULT    | User role (user/admin)         |
+
+**Indexes**: Unique index on `email`
+
+#### 2. Especialidades (Specialties)
+
+**Purpose**: Medical specialties for professionals
+
+**Model**: `backend/models/speciality.ts:16-32`
+
+| Column | Type    | Constraints          | Description              |
+|--------|---------|----------------------|--------------------------|
+| id     | INTEGER | PRIMARY KEY, AUTO    | Unique specialty ID      |
+| name   | STRING  | UNIQUE, NOT NULL     | Specialty name           |
+| state  | ENUM    | NOT NULL, DEFAULT    | Active/inactive status   |
+
+**Indexes**: Unique index on `name`
+
+**State values**: Defined in `STATES_SPECIALITIES` constant
+
+#### 3. Profesionales (Professionals)
+
+**Purpose**: Healthcare professionals (doctors, nurses, etc.)
+
+**Model**: `backend/models/professionals.ts:23-78`
+
+| Column       | Type    | Constraints          | Description                    |
+|--------------|---------|----------------------|--------------------------------|
+| id           | INTEGER | PRIMARY KEY, AUTO    | Unique professional ID         |
+| name         | STRING  | NOT NULL             | First name                     |
+| surname      | STRING  | NOT NULL             | Last name                      |
+| dni          | INTEGER | UNIQUE, NOT NULL     | National ID number             |
+| birthdate    | DATE    | NOT NULL             | Date of birth                  |
+| gender       | STRING  | NOT NULL             | Gender                         |
+| address      | STRING  | NOT NULL             | Physical address               |
+| phone        | STRING  | NOT NULL             | Contact phone                  |
+| email        | STRING  | NOT NULL, VALIDATED  | Email (must be valid)          |
+| specialityID | INTEGER | FK, NOT NULL         | References Especialidades(id)  |
+| state        | ENUM    | NOT NULL, DEFAULT    | Active/inactive status         |
+
+**Indexes**: Unique index on `dni`
+
+**Foreign Keys**: 
+- `specialityID` → `Especialidades.id`
+
+**Relationships**:
+- Belongs to one Speciality
+- Has many Appointments
+- Has many WorkSchedules
+- Has many Patients (through Appointments)
+
+#### 4. Obras_Sociales (Social Works)
+
+**Purpose**: Health insurance providers
+
+**Model**: `backend/models/socialsWorks.ts:19-47`
+
+| Column  | Type    | Constraints          | Description                |
+|---------|---------|----------------------|----------------------------|
+| id      | INTEGER | PRIMARY KEY, AUTO    | Unique social work ID      |
+| name    | STRING  | UNIQUE, NOT NULL     | Provider name              |
+| address | STRING  | NOT NULL             | Physical address           |
+| phone   | STRING  | NOT NULL             | Contact phone              |
+| webpage | STRING  | NOT NULL             | Website URL                |
+| state   | ENUM    | NOT NULL, DEFAULT    | Active/inactive status     |
+
+**Indexes**: Unique index on `name`
+
+#### 5. Pacientes (Patients)
+
+**Purpose**: Medical clinic patients
+
+**Model**: `backend/models/patients.ts:24-79`
+
+| Column       | Type    | Constraints          | Description                    |
+|--------------|---------|----------------------|--------------------------------|
+| id           | INTEGER | PRIMARY KEY, AUTO    | Unique patient ID              |
+| name         | STRING  | NOT NULL             | First name                     |
+| surname      | STRING  | NOT NULL             | Last name                      |
+| dni          | INTEGER | UNIQUE, NOT NULL     | National ID number             |
+| birthdate    | DATE    | NOT NULL             | Date of birth                  |
+| gender       | STRING  | NOT NULL             | Gender                         |
+| address      | STRING  | NOT NULL             | Physical address               |
+| phone        | STRING  | NOT NULL             | Contact phone                  |
+| email        | STRING  | NOT NULL, VALIDATED  | Email (must be valid)          |
+| socialWorkId | INTEGER | FK, NOT NULL         | References Obras_Sociales(id)  |
+| state        | ENUM    | NOT NULL, DEFAULT    | Active/inactive status         |
+
+**Indexes**: Unique index on `dni`
+
+**Foreign Keys**:
+- `socialWorkId` → `Obras_Sociales.id`
+
+**Relationships**:
+- Belongs to one Social Work
+- Has many Appointments
+- Has many Professionals (through Appointments)
+
+#### 6. Turnos (Appointments)
+
+**Purpose**: Medical appointments between patients and professionals
+
+**Model**: `backend/models/appointments.ts:21-73`
+
+| Column         | Type     | Constraints          | Description                    |
+|----------------|----------|----------------------|--------------------------------|
+| id             | INTEGER  | PRIMARY KEY, AUTO    | Unique appointment ID          |
+| patientID      | INTEGER  | FK, NOT NULL         | References Pacientes(id)       |
+| professionalID | INTEGER  | FK, NOT NULL         | References Profesionales(id)   |
+| date           | DATEONLY | NOT NULL             | Appointment date               |
+| time           | TIME     | NOT NULL             | Appointment time               |
+| description    | STRING   | NULLABLE             | Notes or reason                |
+| state          | ENUM     | NOT NULL, DEFAULT    | Pending/completed/cancelled    |
+
+**Foreign Keys**:
+- `patientID` → `Pacientes.id`
+- `professionalID` → `Profesionales.id`
+
+**Unique Constraints**:
+1. `unique_appointment_per_patient`: One appointment per patient per date/time
+2. `unique_appointment_per_pro`: One appointment per professional per date/time
+
+**Indexes**: Two unique composite indexes prevent double-booking
+
+**State values**: Defined in `STATES_APPOINTMENTS` constant (pending/completed/cancelled)
+
+#### 7. Horarios_Trabajo (Work Schedules)
+
+**Purpose**: Professional working hours by day of week
+
+**Model**: `backend/models/workSchedule.ts:19-57`
+
+| Column         | Type    | Constraints          | Description                    |
+|----------------|---------|----------------------|--------------------------------|
+| id             | INTEGER | PRIMARY KEY, AUTO    | Unique schedule ID             |
+| professionalID | INTEGER | FK, NOT NULL         | References Profesionales(id)   |
+| dayOfWeek      | INTEGER | NOT NULL, 0-6        | Day (0=Sunday, 6=Saturday)     |
+| startTime      | TIME    | NOT NULL             | Work start time                |
+| endTime        | TIME    | NOT NULL             | Work end time                  |
+
+**Foreign Keys**:
+- `professionalID` → `Profesionales.id`
+
+**Unique Constraints**:
+- `unique_schedule_day_per_pro`: One schedule entry per professional per day
+
+**Validation**:
+- `dayOfWeek` must be between 0 (Sunday) and 6 (Saturday)
+
+## Relationships
+
+Relationships are established in `backend/models/server.ts:48-77`:
+
+### One-to-Many Relationships
+
+```typescript
+// Speciality (1) -> (*) Professionals
+Speciality.hasMany(Professionals, { foreignKey: 'specialityID' });
+Professionals.belongsTo(Speciality, { foreignKey: 'specialityID' });
+
+// Social Work (1) -> (*) Patients
+SocialsWorks.hasMany(Patients, { foreignKey: 'socialWorkId' });
+Patients.belongsTo(SocialsWorks, { foreignKey: 'socialWorkId' });
+
+// Professional (1) -> (*) Appointments
+Professionals.hasMany(Appointments, { foreignKey: 'professionalID' });
+Appointments.belongsTo(Professionals, { foreignKey: 'professionalID' });
+
+// Patient (1) -> (*) Appointments
+Patients.hasMany(Appointments, { foreignKey: 'patientID' });
+Appointments.belongsTo(Patients, { foreignKey: 'patientID' });
+
+// Professional (1) -> (*) Work Schedules
+Professionals.hasMany(WorkSchedule, { foreignKey: 'professionalID' });
+WorkSchedule.belongsTo(Professionals, { foreignKey: 'professionalID' });
+```
+
+### Many-to-Many Relationships
+
+```typescript
+// Professionals <-> Patients (through Appointments)
+Professionals.belongsToMany(Patients, { 
+  through: Appointments, 
+  foreignKey: 'professionalID' 
+});
+Patients.belongsToMany(Professionals, { 
+  through: Appointments, 
+  foreignKey: 'patientID' 
+});
+```
+
+This creates a many-to-many relationship where:
+- A professional can have many patients
+- A patient can see many professionals
+- The `Turnos` table serves as the join table
+
+## Database Operations
+
+### Manual Database Sync
+
+To manually sync the database (creates tables if they don't exist):
+
+```bash
+cd backend
+node -e "require('./database/config').sequelize.sync().then(() => console.log('Done'))"
+```
+
+### Force Recreate Tables
+
+<Note type="warning">
+  This will DROP all existing tables and data!
+</Note>
+
+```typescript
+// Modify backend/models/server.ts temporarily
+async connectionToDB(): Promise<void> {
+  await sequelize.sync({ force: true }) // Drops and recreates all tables
+}
+```
+
+### Backup Database
+
+```bash
+# Create backup
+cp backend/data/hospital.sqlite backend/data/hospital.sqlite.backup
+
+# Restore from backup
+cp backend/data/hospital.sqlite.backup backend/data/hospital.sqlite
+```
+
+### Query Database Directly
+
+Using SQLite CLI:
+
+```bash
+# Open database
+sqlite3 backend/data/hospital.sqlite
+
+# List tables
+.tables
+
+# View table schema
+.schema Profesionales
+
+# Run query
+SELECT * FROM Profesionales;
+
+# Exit
+.quit
+```
+
+## Database Migrations
+
+<Note>
+  Currently, the project does not use Sequelize migrations. Schema changes are applied via `sync()`. For production environments, consider implementing proper migrations.
+</Note>
+
+### Implementing Migrations (Recommended)
+
+<Steps>
+  <Step title="Install Sequelize CLI">
+    ```bash
+    cd backend
+    pnpm add -D sequelize-cli
+    ```
+  </Step>
+
+  <Step title="Initialize Migrations">
+    ```bash
+    npx sequelize-cli init
+    ```
+
+    This creates:
+    - `migrations/` - Migration files
+    - `seeders/` - Seed data files
+    - `.sequelizerc` - Configuration
+  </Step>
+
+  <Step title="Generate Migration">
+    ```bash
+    npx sequelize-cli migration:generate --name add-column-to-professionals
+    ```
+  </Step>
+
+  <Step title="Run Migrations">
+    ```bash
+    npx sequelize-cli db:migrate
+    ```
+  </Step>
+</Steps>
+
+## Performance Optimization
+
+### Indexes
+
+The schema includes several indexes for query performance:
+
+1. **Unique constraints** (automatic indexes):
+   - `dni` on Profesionales and Pacientes
+   - `email` on Usuarios
+   - `name` on Especialidades and Obras_Sociales
+
+2. **Composite unique indexes**:
+   - Appointments: `(patientID, date, time)`
+   - Appointments: `(professionalID, date, time)`
+   - Work Schedules: `(professionalID, dayOfWeek)`
+
+### Query Tips
+
+```typescript
+// Use eager loading for related data
+const professional = await Professionals.findByPk(id, {
+  include: [Speciality, Appointments, WorkSchedule]
+});
+
+// Use indexes in WHERE clauses
+const patient = await Patients.findOne({
+  where: { dni: 12345678 } // Uses index
+});
+
+// Limit result sets
+const appointments = await Appointments.findAll({
+  where: { date: '2024-03-15' },
+  limit: 100
+});
+```
+
+## Troubleshooting
+
+### Database Locked Error
+
+**Symptom**: "database is locked" error
+
+**Cause**: Multiple processes trying to write to SQLite simultaneously
+
+**Solution**:
+1. Ensure only one backend instance is running
+2. Close any SQLite browser tools
+3. Add write-ahead logging (WAL mode):
+
+```typescript
+export const sequelize = new Sequelize({
+  dialect: "sqlite",
+  storage: "./data/hospital.sqlite",
+  dialectOptions: {
+    mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
+  }
+});
+```
+
+### Foreign Key Constraint Failed
+
+**Symptom**: Foreign key constraint errors when inserting data
+
+**Solution**:
+1. Ensure referenced records exist first
+2. Check that foreign key values are correct
+3. Insert in correct order: Especialidades → Profesionales → Turnos
+
+### Tables Not Created
+
+**Symptom**: Tables don't exist after starting server
+
+**Solution**:
+1. Check file permissions on `backend/data/` directory
+2. Verify `sequelize.sync()` is being called
+3. Check for errors in console output
+4. Try force sync: `sequelize.sync({ force: true })`
+
+## Next Steps
+
+After setting up the database:
+
+1. [Review the API endpoints](/api-reference/overview)
+2. [Learn about authentication](/api-reference/authentication)
+3. [Explore the data models](/architecture/data-models)

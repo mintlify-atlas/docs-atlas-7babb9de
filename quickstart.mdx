@@ -1,80 +1,256 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get Clínica Vitalis up and running in minutes with this step-by-step guide
 ---
 
-## Get started in three steps
+# Quickstart Guide
 
-Get your documentation site running locally and make your first customization.
+Get your Clínica Vitalis instance up and running quickly with this comprehensive setup guide.
 
-### Step 1: Set up your local environment
+## Prerequisites
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+Before you begin, ensure you have the following installed:
 
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+- **Node.js** (v16 or higher)
+- **pnpm** (v10.20.0 or higher) - Package manager
+- **Git** - For cloning the repository
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+This project uses **pnpm** as the package manager. If you don't have it installed, run: `npm install -g pnpm`
 </Note>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the Clínica Vitalis repository to your local machine:
+
+    ```bash
+    git clone <repository-url>
+    cd clinica-vitalis
+    ```
+  </Step>
+
+  <Step title="Install Backend Dependencies">
+    Navigate to the backend directory and install dependencies:
+
+    ```bash
+    cd backend
+    pnpm install
+    ```
+
+    This will install all required backend packages including:
+    - Express for the API server
+    - Sequelize ORM for database operations
+    - JWT for authentication
+    - bcryptjs for password hashing
+    - express-validator for input validation
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Create a `.env` file in the backend directory with the following configuration:
+
+    ```bash
+    PORT=8080
+    JWT_SECRET=your-secret-key-here
+    ```
+
+    <Warning>
+    Make sure to use a strong, unique secret key for JWT_SECRET in production environments.
+    </Warning>
+
+    The backend uses SQLite, so no additional database configuration is needed. The database file will be created automatically on first run.
+  </Step>
+
+  <Step title="Start the Backend Server">
+    Start the Express backend server:
+
+    ```bash
+    # From the backend directory
+    npx ts-node app.ts
+    ```
+
+    Or for development with auto-reload:
+
+    ```bash
+    npx nodemon app.ts
+    ```
+
+    You should see:
+    ```
+    Servidor corriendo en el puerto 8080
+    ```
+
+    The backend API will be available at `http://localhost:8080`
+  </Step>
+
+  <Step title="Install Frontend Dependencies">
+    Open a new terminal, navigate to the frontend directory, and install dependencies:
+
+    ```bash
+    cd hospital-staff-manager
+    pnpm install
+    ```
+
+    This will install:
+    - React 19 and React DOM
+    - Redux Toolkit for state management
+    - Material-UI components
+    - React Router for navigation
+    - And other frontend dependencies
+  </Step>
+
+  <Step title="Start the Frontend Development Server">
+    Launch the Vite development server:
+
+    ```bash
+    # From the hospital-staff-manager directory
+    pnpm dev
+    ```
+
+    The application will start and be available at `http://localhost:5173` (default Vite port)
+  </Step>
+
+  <Step title="Create Your First Admin User">
+    To access the platform, you need to register an admin user. Make a POST request to the registration endpoint:
+
+    ```bash
+    curl -X POST http://localhost:8080/auth/register \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "Admin",
+        "surname": "User",
+        "email": "admin@clinicavitalis.com",
+        "password": "securepassword123"
+      }'
+    ```
+
+    Or use the registration form in the frontend interface at `http://localhost:5173/register`
+  </Step>
+
+  <Step title="Login to the Platform">
+    Navigate to `http://localhost:5173/login` and sign in with your credentials:
+
+    ```json
+    {
+      "email": "admin@clinicavitalis.com",
+      "password": "securepassword123"
+    }
+    ```
+
+    Upon successful login, you'll receive a JWT token that will be stored and used for authenticated requests.
+  </Step>
+</Steps>
+
+## Verify Installation
+
+After completing the setup, verify everything is working:
+
+### Backend Health Check
+
+The backend exposes several API endpoints. Verify they're accessible:
+
+```bash
+# Test authentication endpoint
+curl http://localhost:8080/auth/login
+
+# Should return validation errors (expected without credentials)
+```
+
+### Frontend Access
+
+1. Open your browser to `http://localhost:5173`
+2. You should see the Clínica Vitalis login page
+3. Login with your admin credentials
+4. You should be redirected to the dashboard
+
+## API Endpoints Overview
+
+The backend provides the following RESTful API endpoints:
+
+| Endpoint | Description |
+|----------|-------------|
+| `/auth/register` | Register new users |
+| `/auth/login` | Authenticate and receive JWT |
+| `/professionals` | Manage medical professionals |
+| `/patients` | Manage patient records |
+| `/appointments` | Handle appointment scheduling |
+| `/specialities` | Manage medical specialties |
+| `/socials_works` | Manage insurance providers |
+| `/work_schedules` | Coordinate staff work schedules |
+
+<Note>
+All endpoints except `/auth/register` and `/auth/login` require JWT authentication. Include the token in the Authorization header: `Bearer <your-token>`
+</Note>
+
+## Building for Production
+
+When you're ready to deploy:
+
+<Steps>
+  <Step title="Build the Frontend">
+    ```bash
+    cd hospital-staff-manager
+    pnpm build
+    ```
+
+    This creates optimized production files in the `dist` directory.
+  </Step>
+
+  <Step title="Build the Backend">
+    ```bash
+    cd backend
+    npx tsc
+    ```
+
+    This compiles TypeScript to JavaScript for production deployment.
+  </Step>
+
+  <Step title="Deploy">
+    Deploy the `dist` folder (frontend) and compiled backend to your hosting provider of choice.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port Already in Use">
+    If port 8080 or 5173 is already in use, you can change them:
+    - Backend: Modify the `PORT` in your `.env` file
+    - Frontend: Vite will automatically try the next available port, or configure in `vite.config.ts`
+  </Accordion>
+
+  <Accordion title="Database Connection Issues">
+    SQLite should work out of the box. If you encounter issues:
+    - Ensure the backend directory has write permissions
+    - Check that `sqlite3` package is properly installed
+    - The database file will be created automatically on first run
+  </Accordion>
+
+  <Accordion title="CORS Errors">
+    If you experience CORS issues:
+    - Ensure the backend CORS configuration allows your frontend origin
+    - The backend uses the `cors` package which is already configured
+    - Check that both servers are running on the expected ports
+  </Accordion>
+
+  <Accordion title="JWT Token Issues">
+    If authentication isn't working:
+    - Verify your `JWT_SECRET` is set in the `.env` file
+    - Check that the token is being sent in the Authorization header
+    - Ensure the token hasn't expired
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you have Clínica Vitalis running, explore the features:
+
+<CardGroup cols={2}>
+  <Card title="Explore Features" icon="compass" href="/features">
+    Learn about all the capabilities of Clínica Vitalis
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/register">
+    Dive into the complete API documentation
+  </Card>
+</CardGroup>

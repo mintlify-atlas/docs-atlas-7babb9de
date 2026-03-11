@@ -1,0 +1,153 @@
+---
+title: 'Register User'
+api: 'POST /auth/register'
+description: 'Create a new user account in the system'
+---
+
+## Endpoint
+
+```
+POST /auth/register
+```
+
+## Authentication
+
+No authentication required. This is a public endpoint.
+
+<Note>
+  By default, new users are created with the "user" role. To create an admin user, include the `admin-key` header with the correct secret key.
+</Note>
+
+## Request Headers
+
+<ParamField header="admin-key" type="string" optional>
+  Secret key to create an admin user. If this header matches the server's configured admin key, the user will be created with admin privileges.
+</ParamField>
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  User's first name. Cannot be empty.
+</ParamField>
+
+<ParamField body="surname" type="string" required>
+  User's last name. Cannot be empty.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be a valid email format and unique in the system.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password. Must be at least 6 characters long. The password will be hashed before storage.
+</ParamField>
+
+<ParamField body="rol" type="string" optional>
+  User role. This field is optional in the request body. The actual role is determined by the `admin-key` header and server logic.
+</ParamField>
+
+## Request Example
+
+```json
+{
+  "name": "María",
+  "surname": "González",
+  "email": "maria.gonzalez@example.com",
+  "password": "securePassword123"
+}
+```
+
+### Admin User Registration Example
+
+```bash
+curl -X POST https://api.clinicavitalis.com/auth/register \
+  -H "Content-Type: application/json" \
+  -H "admin-key: your-secret-admin-key" \
+  -d '{
+    "name": "Admin",
+    "surname": "User",
+    "email": "admin@clinicavitalis.com",
+    "password": "adminPassword123"
+  }'
+```
+
+## Response
+
+### Success Response (201 Created)
+
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "María",
+    "surname": "González",
+    "email": "maria.gonzalez@example.com",
+    "password": "$2a$10$hashed.password.string.here",
+    "rol": "50yunUs3r"
+  }
+}
+```
+
+<Note>
+  The password in the response is the hashed version. The plain text password is never stored or returned.
+</Note>
+
+### Error Responses
+
+#### 400 Bad Request - Validation Error
+
+Returned when validation fails for any required field or format.
+
+```json
+{
+  "errors": [
+    {
+      "msg": "El nombre es obligatorio",
+      "param": "name",
+      "location": "body"
+    }
+  ]
+}
+```
+
+#### 400 Bad Request - Email Already Exists
+
+```json
+{
+  "errors": [
+    {
+      "msg": "El email ya está registrado",
+      "param": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+  "msg": "Error en el servidor"
+}
+```
+
+## Validation Rules
+
+The following validations are enforced by express-validator:
+
+- **name**: Required, cannot be empty
+- **surname**: Required, cannot be empty
+- **email**: Required, must be a valid email format, must be unique in the database
+- **password**: Required, minimum length of 6 characters
+
+<Warning>
+  Make sure to validate email uniqueness on the client side before submitting to provide better user experience. The server will reject duplicate emails.
+</Warning>
+
+## User Roles
+
+The system supports two roles:
+
+- `50yunUs3r` - Standard user (default)
+- `50yun4dmin` - Admin user (requires admin-key header)

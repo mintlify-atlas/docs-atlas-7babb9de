@@ -1,0 +1,180 @@
+---
+title: 'Get All Professionals'
+api: 'GET /professionals'
+---
+
+Retrieves a list of all professionals in the system with optional filtering capabilities.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token (JWT) required for authentication.
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="search" type="string">
+  Search term to filter professionals by name, surname, or DNI (partial match).
+</ParamField>
+
+<ParamField query="gender" type="string">
+  Filter professionals by gender.
+</ParamField>
+
+<ParamField query="specialityID" type="number">
+  Filter professionals by specialty ID.
+</ParamField>
+
+<ParamField query="state" type="string">
+  Filter professionals by state. Valid values:
+  - `Activo/a` - Active professional
+  - `Inactivo/a` - Inactive professional
+  - `Licencia` - On license
+</ParamField>
+
+## Response
+
+<ResponseField name="professionals" type="array">
+  Array of professional objects with their details and related information.
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="number">
+      Unique identifier for the professional.
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Professional's first name.
+    </ResponseField>
+    
+    <ResponseField name="surname" type="string">
+      Professional's last name.
+    </ResponseField>
+    
+    <ResponseField name="dni" type="number">
+      Professional's national identification number (DNI).
+    </ResponseField>
+    
+    <ResponseField name="birthdate" type="string">
+      Professional's date of birth (ISO 8601 format).
+    </ResponseField>
+    
+    <ResponseField name="gender" type="string">
+      Professional's gender.
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Professional's address.
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Professional's phone number.
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      Professional's email address.
+    </ResponseField>
+    
+    <ResponseField name="specialityID" type="number">
+      ID of the professional's specialty.
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Current state of the professional (Activo/a, Inactivo/a, or Licencia).
+    </ResponseField>
+    
+    <ResponseField name="Especialidade" type="object">
+      Associated specialty information.
+      
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          Name of the specialty.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="HorarioTrabajos" type="array">
+      Work schedule information for the professional.
+      
+      <Expandable title="properties">
+        <ResponseField name="dayOfWeek" type="string">
+          Day of the week.
+        </ResponseField>
+        
+        <ResponseField name="startTime" type="string">
+          Start time of the work shift.
+        </ResponseField>
+        
+        <ResponseField name="endTime" type="string">
+          End time of the work shift.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="countActives" type="number">
+  Total count of active professionals in the system.
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="Success">
+  Professionals retrieved successfully.
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid JWT token.
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  No professionals found in the system.
+</ResponseField>
+
+<ResponseField name="500" type="Server Error">
+  Internal server error occurred.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://api.clinicavitalis.com/professionals?specialityID=1&state=Activo/a" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "professionals": [
+    {
+      "id": 1,
+      "name": "Juan",
+      "surname": "Pérez",
+      "dni": 12345678,
+      "birthdate": "1985-03-15T00:00:00.000Z",
+      "gender": "Masculino",
+      "address": "Av. Corrientes 1234, Buenos Aires",
+      "phone": "+54 11 1234-5678",
+      "email": "juan.perez@clinicavitalis.com",
+      "specialityID": 1,
+      "state": "Activo/a",
+      "Especialidade": {
+        "name": "Cardiología"
+      },
+      "HorarioTrabajos": [
+        {
+          "dayOfWeek": "Lunes",
+          "startTime": "09:00",
+          "endTime": "17:00"
+        },
+        {
+          "dayOfWeek": "Miércoles",
+          "startTime": "09:00",
+          "endTime": "17:00"
+        }
+      ]
+    }
+  ],
+  "countActives": 25
+}
+```

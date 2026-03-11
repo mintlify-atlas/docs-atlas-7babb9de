@@ -1,0 +1,130 @@
+---
+title: 'Get patient by ID'
+api: 'GET /patients/:id'
+description: 'Retrieve a specific patient by their unique identifier'
+---
+
+## Authentication
+
+This endpoint requires a valid JWT token.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication. Include as `Bearer <token>`.
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The unique identifier of the patient to retrieve.
+</ParamField>
+
+## Response
+
+<ResponseField name="patient" type="object">
+  The patient object.
+  
+  <Expandable title="Patient properties">
+    <ResponseField name="id" type="number">
+      Unique patient identifier.
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Patient's first name.
+    </ResponseField>
+    
+    <ResponseField name="surname" type="string">
+      Patient's last name.
+    </ResponseField>
+    
+    <ResponseField name="dni" type="number">
+      Patient's national identification number (DNI).
+    </ResponseField>
+    
+    <ResponseField name="birthdate" type="string">
+      Patient's date of birth in ISO 8601 format.
+    </ResponseField>
+    
+    <ResponseField name="gender" type="string">
+      Patient's gender.
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Patient's residential address.
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Patient's phone number.
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      Patient's email address.
+    </ResponseField>
+    
+    <ResponseField name="socialWorkId" type="number">
+      ID of the patient's social work.
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Patient's current state. Values: `Activo/a` or `Inactivo/a`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET https://api.clinica-vitalis.com/patients/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "patient": {
+    "id": 1,
+    "name": "María",
+    "surname": "González",
+    "dni": 12345678,
+    "birthdate": "1985-03-15T00:00:00.000Z",
+    "gender": "Femenino",
+    "address": "Av. Corrientes 1234, CABA",
+    "phone": "11-4567-8901",
+    "email": "maria.gonzalez@email.com",
+    "socialWorkId": 1,
+    "state": "Activo/a"
+  }
+}
+```
+
+## Error Responses
+
+### 401 Unauthorized
+
+Returned when the JWT token is missing or invalid.
+
+```json
+{
+  "msg": "Token inválido"
+}
+```
+
+### 404 Not Found
+
+Returned when the patient with the specified ID is not found.
+
+```json
+{
+  "msg": "No hay paciente cargado en el sistema"
+}
+```
+
+### 500 Internal Server Error
+
+Returned when a server error occurs.
+
+```json
+{
+  "msg": "Error del servidor"
+}
+```

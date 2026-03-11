@@ -1,0 +1,219 @@
+---
+title: Professional Management
+description: Manage healthcare professionals, their specialties, and work schedules
+---
+
+## Overview
+
+The Professional Management feature allows administrators to register, update, and manage healthcare professionals in the Clínica Vitalis system. Each professional is associated with a specialty and can have customized work schedules.
+
+## Data Model
+
+Professionals are stored with the following information:
+
+```typescript
+interface IProfessionals {
+    id: number;
+    name: string;
+    surname: string;
+    dni: number;                // Unique identification number
+    birthdate: Date;
+    gender: string;
+    address: string;
+    phone: string;
+    email: string;              // Must be valid email format
+    specialityID: number;       // Reference to Speciality
+    state?: string;             // active | inactive | license
+}
+```
+
+### Professional States
+
+Professionals can have one of three states:
+
+- **Activo/a** (Active): Professional is available for appointments
+- **Inactivo/a** (Inactive): Professional is not currently working
+- **Licencia** (On Leave): Professional is temporarily unavailable
+
+## Key Features
+
+### Create Professional
+
+Administrators can register new professionals in the system with complete validation:
+
+<Steps>
+  <Step title="Provide Basic Information">
+    Enter the professional's name, surname, DNI (minimum 7 digits), birthdate, gender, and address.
+  </Step>
+  
+  <Step title="Add Contact Details">
+    Provide phone number (10-20 characters, numbers/spaces/dashes only) and valid email address.
+  </Step>
+  
+  <Step title="Assign Specialty">
+    Select an existing specialty from the system. The specialty must exist and be active.
+  </Step>
+  
+  <Step title="Submit Registration">
+    The system validates all fields and creates the professional record with an "Active" state by default.
+  </Step>
+</Steps>
+
+<Note>
+  DNI must be unique in the system. The system will reject duplicate DNI numbers.
+</Note>
+
+### Validation Rules
+
+The system enforces strict validation rules from `backend/routes/professionals.ts:29-52`:
+
+```typescript
+check("name", "El nombre es obligatorio").not().isEmpty()
+check("surname", "El apellido es obligatorio").not().isEmpty()
+check("dni", "El DNI es obligatorio").not().isEmpty()
+check("dni", "DNI no válido").isLength({min: 7})
+check("dni").custom(existDNIProfessional)  // Ensures uniqueness
+check("phone", "El teléfono es obligatorio")
+    .not().isEmpty()
+    .isLength({ min: 10, max: 20 })
+    .matches(/^[0-9\s\-\+]*$/)
+check("email", "El email no es válido").isEmail()
+check("specialityID").custom(existSpecialityById)  // Validates specialty exists
+```
+
+### Search and Filter Professionals
+
+The system provides powerful search and filtering capabilities:
+
+**Search by:**
+- Name (partial match)
+- Surname (partial match)
+- DNI (partial match)
+
+**Filter by:**
+- Gender
+- Specialty ID
+- Professional state (active/inactive/license)
+
+```typescript
+// Example query from backend/controllers/professionals.ts:35-63
+const {search, gender, specialityID, state} = req.query;
+
+const filter: any = {}
+
+if (search) {
+    filter[Op.or] = [
+        { name: {[Op.like]: `%${search}`} },
+        { surname: {[Op.like]: `%${search}`} },
+        { dni: {[Op.like]: `%${search}`} }
+    ]
+}
+
+if (gender) filter.gender = gender
+if (specialityID) filter.specialityID = specialityID
+if (state) filter.state = state
+```
+
+### View Professional Details
+
+When retrieving professionals, the system includes:
+
+- Complete professional information
+- Associated specialty name
+- Work schedules (days and time ranges)
+- Count of active professionals in the system
+
+```typescript
+// Includes from backend/controllers/professionals.ts:65-77
+include: [
+    {
+        model: Speciality,
+        attributes: ['name']
+    },
+    {
+        model: WorkSchedule,
+        attributes: ['dayOfWeek', 'startTime', 'endTime']
+    }
+]
+```
+
+### Update Professional Information
+
+Administrators can update all professional fields including state changes:
+
+<Steps>
+  <Step title="Select Professional">
+    Find the professional by ID or through the search interface.
+  </Step>
+  
+  <Step title="Modify Information">
+    Update any field including contact information, specialty, or state.
+  </Step>
+  
+  <Step title="Validate Changes">
+    The system re-validates all fields including DNI uniqueness (excluding the current professional).
+  </Step>
+  
+  <Step title="Save Changes">
+    The updated information is persisted to the database.
+  </Step>
+</Steps>
+
+## API Endpoints
+
+### GET `/api/professionals`
+
+Retrieve all professionals with optional filters.
+
+**Query Parameters:**
+- `search` - Search term for name, surname, or DNI
+- `gender` - Filter by gender
+- `specialityID` - Filter by specialty
+- `state` - Filter by professional state
+
+**Response:**
+```json
+{
+  "professionals": [...],
+  "countActives": 42
+}
+```
+
+### GET `/api/professionals/:id`
+
+Retrieve a specific professional by ID.
+
+### POST `/api/professionals`
+
+Create a new professional (Admin only).
+
+**Required Fields:**
+- name, surname, dni, birthdate, gender, address, phone, email, specialityID
+
+### PATCH `/api/professionals/:id`
+
+Update a professional (Admin only).
+
+**Required Fields:**
+- All fields from POST plus `state`
+
+## Security
+
+<Note>
+  All professional management operations require JWT authentication. Create and update operations are restricted to administrators only.
+</Note>
+
+## Database Relationships
+
+Professionals are related to:
+- **Specialties** (Many-to-One): Each professional belongs to one specialty
+- **Work Schedules** (One-to-Many): Each professional can have multiple work schedules
+- **Appointments** (One-to-Many): Each professional can have multiple appointments
+
+## Best Practices
+
+1. **Always validate specialty exists** before assigning it to a professional
+2. **Check DNI uniqueness** to prevent duplicate registrations
+3. **Use state management** to handle professional availability rather than deleting records
+4. **Include work schedules** when displaying professional information to users
+5. **Filter by active state** when showing available professionals for appointment booking

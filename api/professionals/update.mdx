@@ -1,0 +1,260 @@
+---
+title: 'Update Professional'
+api: 'PATCH /professionals/:id'
+---
+
+Updates an existing professional's information.
+
+## Authentication & Authorization
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token (JWT) required for authentication.
+</ParamField>
+
+<Note>
+  This endpoint requires **admin privileges**. Only users with the admin role can update professional information.
+</Note>
+
+## Path Parameters
+
+<ParamField path="id" type="number" required>
+  The unique identifier of the professional to update. Must be a numeric value.
+</ParamField>
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Professional's first name. Cannot be empty.
+</ParamField>
+
+<ParamField body="surname" type="string" required>
+  Professional's last name. Cannot be empty.
+</ParamField>
+
+<ParamField body="dni" type="string" required>
+  Professional's national identification number (DNI).
+  
+  **Validation:**
+  - Cannot be empty
+  - Minimum length: 7 characters
+  - Must be unique (or belong to the current professional being updated)
+</ParamField>
+
+<ParamField body="birthdate" type="string" required>
+  Professional's date of birth. Cannot be empty.
+  
+  **Format:** ISO 8601 date string (e.g., "1985-03-15")
+</ParamField>
+
+<ParamField body="gender" type="string" required>
+  Professional's gender. Cannot be empty.
+</ParamField>
+
+<ParamField body="address" type="string" required>
+  Professional's address. Cannot be empty.
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Professional's phone number.
+  
+  **Validation:**
+  - Cannot be empty
+  - Length: 10 to 20 characters
+  - Can only contain numbers, hyphens, spaces, or plus signs
+  - Pattern: `/^[0-9\s\-\+]*$/`
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Professional's email address.
+  
+  **Validation:**
+  - Cannot be empty
+  - Must be a valid email format
+</ParamField>
+
+<ParamField body="specialityID" type="number" required>
+  ID of the professional's specialty.
+  
+  **Validation:**
+  - Cannot be empty
+  - Must reference an existing specialty in the system
+</ParamField>
+
+<ParamField body="state" type="string" required>
+  Current state of the professional. Cannot be empty.
+  
+  **Valid values:**
+  - `Activo/a` - Active professional
+  - `Inactivo/a` - Inactive professional
+  - `Licencia` - On license
+</ParamField>
+
+## Response
+
+<ResponseField name="professional" type="object">
+  The updated professional object with all current information.
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="number">
+      Unique identifier for the professional.
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Professional's first name.
+    </ResponseField>
+    
+    <ResponseField name="surname" type="string">
+      Professional's last name.
+    </ResponseField>
+    
+    <ResponseField name="dni" type="number">
+      Professional's national identification number (DNI).
+    </ResponseField>
+    
+    <ResponseField name="birthdate" type="string">
+      Professional's date of birth (ISO 8601 format).
+    </ResponseField>
+    
+    <ResponseField name="gender" type="string">
+      Professional's gender.
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Professional's address.
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Professional's phone number.
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      Professional's email address.
+    </ResponseField>
+    
+    <ResponseField name="specialityID" type="number">
+      ID of the professional's specialty.
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Current state of the professional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="Success">
+  Professional updated successfully.
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Invalid ID (must be numeric) or validation error.
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid JWT token.
+</ResponseField>
+
+<ResponseField name="403" type="Forbidden">
+  User does not have admin privileges.
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  Professional not found in the system.
+</ResponseField>
+
+<ResponseField name="500" type="Server Error">
+  Internal server error occurred.
+</ResponseField>
+
+## Validation Errors
+
+The API returns detailed validation errors in the following format:
+
+```json
+{
+  "errors": [
+    {
+      "msg": "El nombre es obligatorio",
+      "param": "name",
+      "location": "body"
+    }
+  ]
+}
+```
+
+Common validation errors:
+- "El nombre es obligatorio" - Name is required
+- "El apellido es obligatorio" - Surname is required
+- "El DNI es obligatorio" - DNI is required
+- "DNI no válido" - DNI must be at least 7 characters
+- "El DNI ya está registrado" - DNI already exists for another professional
+- "La fecha de nacimiento es obligatoria" - Birthdate is required
+- "El genero es obligatorio" - Gender is required
+- "La dirección es obligatoria" - Address is required
+- "El teléfono es obligatorio" - Phone is required
+- "El teléfono debe tener entre 10 y 20 caracteres" - Phone must be 10-20 characters
+- "El teléfono solo puede contener números, guiones o espacios" - Phone contains invalid characters
+- "El email es obligatorio" - Email is required
+- "El email no es válido" - Email format is invalid
+- "La especialidad es obligatoria" - Specialty ID is required
+- "La especialidad no existe" - Specialty ID does not exist
+- "El estado es obligatorio" - State is required
+
+## Example Request
+
+```bash
+curl -X PATCH "https://api.clinicavitalis.com/professionals/1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Juan",
+    "surname": "Pérez García",
+    "dni": "12345678",
+    "birthdate": "1985-03-15",
+    "gender": "Masculino",
+    "address": "Av. Corrientes 5678, Buenos Aires",
+    "phone": "+54 11 9876-5432",
+    "email": "juan.perez@clinicavitalis.com",
+    "specialityID": 1,
+    "state": "Activo/a"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "professional": {
+    "id": 1,
+    "name": "Juan",
+    "surname": "Pérez García",
+    "dni": 12345678,
+    "birthdate": "1985-03-15T00:00:00.000Z",
+    "gender": "Masculino",
+    "address": "Av. Corrientes 5678, Buenos Aires",
+    "phone": "+54 11 9876-5432",
+    "email": "juan.perez@clinicavitalis.com",
+    "specialityID": 1,
+    "state": "Activo/a"
+  }
+}
+```
+
+## Error Examples
+
+### Invalid ID
+
+```json
+{
+  "msg": "Debe enviar un ID y debe ser numérico"
+}
+```
+
+### Professional Not Found
+
+```json
+{
+  "msg": "El profesional no está cargado en el sistema"
+}
+```

@@ -1,97 +1,138 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Clínica Vitalis"
+description: "Hospital staff management platform for efficient resource allocation and patient care"
 ---
 
-## Setting up
+<div className="bg-white border border-[#e0e0e0] rounded-lg shadow-sm p-8 mb-8">
+  <div className="text-center mb-6">
+    <h1 className="text-5xl font-bold text-[#1a1a1a] mb-4" style={{ fontFamily: 'Inter' }}>
+      Clínica Vitalis
+    </h1>
+    <p className="text-lg text-[#545454] max-w-2xl mx-auto" style={{ fontFamily: 'Inter' }}>
+      A comprehensive hospital staff management platform designed to optimize workflow, manage medical professionals, and streamline patient admissions with intelligent resource allocation.
+    </p>
+  </div>
+  
+  <div className="flex justify-center gap-4 mt-6">
+    <a 
+      href="/quickstart" 
+      className="inline-block px-6 py-3 rounded-md font-semibold text-[#1a1a1a]"
+      style={{ 
+        backgroundColor: '#94cb04',
+        fontFamily: 'Inter',
+        textDecoration: 'none'
+      }}
+    >
+      Get Started
+    </a>
+    <a 
+      href="/features" 
+      className="inline-block px-6 py-3 rounded-md font-semibold text-[#1a1a1a] border border-[#e0e0e0]"
+      style={{ 
+        backgroundColor: 'transparent',
+        fontFamily: 'Inter',
+        textDecoration: 'none'
+      }}
+    >
+      Explore Features
+    </a>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+## Key Features
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+Clínica Vitalis provides everything you need to manage your hospital's administrative operations efficiently.
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Professional Management" icon="user-doctor" href="/features/professionals">
+    Manage medical staff profiles, specialties, and credentials with comprehensive validation
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Patient Administration" icon="hospital-user" href="/features/patients">
+    Handle patient records, insurance information, and medical history seamlessly
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Appointment Scheduling" icon="calendar-check" href="/features/appointments">
+    Smart appointment booking with availability validation and conflict prevention
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Work Schedules" icon="clock" href="/features/work-schedules">
+    Define and manage healthcare professional working hours and availability
   </Card>
-</Columns>
+  <Card title="Specialty Management" icon="stethoscope" href="/features/specialties">
+    Organize medical specialties and assign professionals accordingly
+  </Card>
+  <Card title="Insurance Integration" icon="shield-heart" href="/features/social-works">
+    Manage social works (insurance providers) and patient coverage information
+  </Card>
+</CardGroup>
 
-## Create beautiful pages
+## Technology Stack
 
-Everything you need to create world-class documentation.
+Built with modern technologies for reliability and performance.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={2}>
+  <Card title="Backend" icon="server">
+    **Node.js + Express** with TypeScript for type-safe API development
+    
+    **SQLite + Sequelize** for relational data modeling and migrations
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="Frontend" icon="window">
+    **React + TypeScript** with Vite for fast development
+    
+    **Redux Toolkit** for predictable state management
+    
+    **Material UI** for consistent design components
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Authentication" icon="lock">
+    **JWT tokens** for secure authentication
+    
+    **Bcrypt** for password hashing
+    
+    **Role-based access control** (Admin/User)
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="Validation" icon="circle-check">
+    **Express Validator** for input validation
+    
+    **Custom middleware** for business logic validation
+    
+    **Database constraints** for data integrity
   </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Quick Navigation
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<CardGroup cols={3}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Get up and running with Clínica Vitalis in minutes
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/register">
+    Explore the complete REST API documentation
+  </Card>
+  <Card title="Deployment" icon="server" href="/deployment/installation">
+    Learn how to deploy and configure the platform
+  </Card>
+</CardGroup>
+
+## Why Clínica Vitalis?
+
+<Accordion title="Efficient Resource Allocation">
+  The platform intelligently manages hospital resources by validating professional availability, preventing scheduling conflicts, and optimizing appointment distribution across medical staff.
+</Accordion>
+
+<Accordion title="Comprehensive Validation">
+  Every operation includes thorough validation: DNI uniqueness checks, email format validation, appointment availability verification, work schedule conflict detection, and more.
+</Accordion>
+
+<Accordion title="Role-Based Security">
+  JWT-based authentication with role separation ensures that only authorized administrators can create or modify critical data, while standard users have read-only access.
+</Accordion>
+
+<Accordion title="Real-Time State Management">
+  Redux Toolkit with Redux Persist provides a seamless user experience with optimistic updates, persistent sessions, and synchronized state across the application.
+</Accordion>
+
+## Built With Care
+
+Clínica Vitalis was developed as an MVP (Minimum Viable Product) to demonstrate robust MERN stack architecture with TypeScript, focusing on practical solutions for real-world hospital administration challenges.
+
+<Note>
+  This platform is designed for internal hospital use to manage staff, patients, appointments, and schedules efficiently.
+</Note>

@@ -1,0 +1,272 @@
+---
+title: Patient Management
+description: Manage patient records, social work affiliations, and medical information
+---
+
+## Overview
+
+The Patient Management feature enables administrators to register, update, and manage patient records in the Clínica Vitalis system. Each patient is associated with a social work (insurance provider) for billing and coverage purposes.
+
+## Data Model
+
+Patients are stored with the following structure:
+
+```typescript
+interface IPatients {
+    id: number;
+    name: string;
+    surname: string;
+    dni: number;                // Unique identification number
+    birthdate: Date;
+    gender: string;
+    address: string;
+    phone: string;
+    email: string;              // Must be valid email format
+    socialWorkId: number;       // Reference to Social Work
+    state?: string;             // active | inactive
+}
+```
+
+### Patient States
+
+Patients can have one of two states:
+
+- **Activo/a** (Active): Patient can schedule appointments
+- **Inactivo/a** (Inactive): Patient record is archived or suspended
+
+## Key Features
+
+### Register New Patient
+
+Administrators can register new patients with comprehensive validation:
+
+<Steps>
+  <Step title="Enter Personal Information">
+    Provide the patient's name, surname, DNI (minimum 7 digits), birthdate, and gender.
+  </Step>
+  
+  <Step title="Add Contact Information">
+    Enter address, phone number (10-20 characters), and valid email address.
+  </Step>
+  
+  <Step title="Select Social Work">
+    Choose the patient's insurance provider (social work) from active options in the system.
+  </Step>
+  
+  <Step title="Create Patient Record">
+    The system validates all fields and creates the patient with an "Active" state by default.
+  </Step>
+</Steps>
+
+<Note>
+  Each patient must have a unique DNI. The system prevents duplicate registrations using the same identification number.
+</Note>
+
+### Validation Rules
+
+Strict validation is enforced from `backend/routes/patients.ts:29-52`:
+
+```typescript
+check("name", "El nombre es obligatorio").not().isEmpty()
+check("surname", "El apellido es obligatorio").not().isEmpty()
+check("dni", "El DNI es obligatorio").not().isEmpty()
+check("dni", "DNI no válido").isLength({min: 7})
+check("dni").custom(existDNIPatient)  // Ensures DNI is unique
+check("phone", "El teléfono es obligatorio")
+    .not().isEmpty()
+    .isLength({ min: 10, max: 20 })
+    .matches(/^[0-9\s\-\+]*$/)
+check("email", "El email no es válido").isEmail()
+check("socialWorkId").custom(existSocialWorkById)  // Validates insurance exists
+```
+
+### Search and Filter Patients
+
+The system provides flexible search capabilities to quickly find patient records:
+
+**Search by:**
+- Name (partial match)
+- Surname (partial match)  
+- DNI (partial match)
+
+**Filter by:**
+- Gender
+- Social Work ID (insurance provider)
+- Patient state (active/inactive)
+
+The search functionality uses SQL LIKE operators for partial matching, making it easy to find patients even with incomplete information.
+
+### View Patient Details
+
+When retrieving patient information, the system provides:
+
+- Complete patient demographic data
+- Associated social work (insurance) information
+- Current patient state
+- Contact information for communication
+
+### Update Patient Records
+
+Administrators can modify patient information as needed:
+
+<Steps>
+  <Step title="Locate Patient">
+    Find the patient using the search functionality or by ID.
+  </Step>
+  
+  <Step title="Update Information">
+    Modify any field including contact details, social work affiliation, or state.
+  </Step>
+  
+  <Step title="Validate Changes">
+    The system validates all fields, ensuring DNI uniqueness (excluding the current patient).
+  </Step>
+  
+  <Step title="Save Record">
+    Updated information is saved to the database.
+  </Step>
+</Steps>
+
+<Note>
+  When updating a patient's DNI, the system checks that the new DNI doesn't belong to another patient in the system.
+</Note>
+
+## Data Integrity
+
+### Database Constraints
+
+The patient model includes important constraints defined in `backend/models/patients.ts`:
+
+```typescript
+dni: {
+    type: DataTypes.INTEGER,
+    unique: true,           // Enforces uniqueness at database level
+    allowNull: false,
+}
+email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+        isEmail: true       // Validates email format
+    }
+}
+socialWorkId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+        model: "Obras_Sociales",  // Foreign key to social works
+        key: "id"
+    }
+}
+```
+
+## API Endpoints
+
+### GET `/api/patients`
+
+Retrieve all patients with optional filters.
+
+**Query Parameters:**
+- `search` - Search term for name, surname, or DNI
+- `gender` - Filter by gender
+- `socialWorkId` - Filter by insurance provider
+- `state` - Filter by patient state
+
+**Response:**
+```json
+{
+  "patients": [...],
+  "countActives": 156
+}
+```
+
+### GET `/api/patients/:id`
+
+Retrieve a specific patient by ID.
+
+**Response:**
+```json
+{
+  "patient": {
+    "id": 1,
+    "name": "John",
+    "surname": "Doe",
+    "dni": 12345678,
+    "email": "john.doe@example.com",
+    "socialWorkId": 5,
+    "state": "Activo/a"
+  }
+}
+```
+
+### POST `/api/patients`
+
+Create a new patient (Admin only).
+
+**Required Fields:**
+- name, surname, dni, birthdate, gender, address, phone, email, socialWorkId
+
+**Response:**
+```json
+{
+  "patient": { ... }
+}
+```
+
+### PATCH `/api/patients/:id`
+
+Update a patient record (Admin only).
+
+**Required Fields:**
+- All fields from POST plus `state`
+
+## Security and Access Control
+
+<Note>
+  All patient management operations require JWT authentication. Create and update operations are restricted to users with administrator privileges.
+</Note>
+
+**Authentication Requirements:**
+- **GET requests**: Authenticated users only
+- **POST/PATCH requests**: Administrator role required
+
+## Database Relationships
+
+Patients are connected to:
+- **Social Works** (Many-to-One): Each patient belongs to one insurance provider
+- **Appointments** (One-to-Many): Each patient can have multiple appointments
+
+## Workflow Example
+
+Here's a typical patient registration workflow:
+
+<Steps>
+  <Step title="Patient Arrives">
+    New patient arrives at the clinic for the first time.
+  </Step>
+  
+  <Step title="Collect Information">
+    Reception staff collects patient's personal information, DNI, and insurance details.
+  </Step>
+  
+  <Step title="Verify Insurance">
+    Staff verifies the social work (insurance) is registered in the system.
+  </Step>
+  
+  <Step title="Create Record">
+    Administrator creates the patient record through the system with validated information.
+  </Step>
+  
+  <Step title="Schedule Appointment">
+    Once registered, the patient can be assigned appointments with professionals.
+  </Step>
+</Steps>
+
+## Best Practices
+
+1. **Always verify DNI** before registration to prevent duplicates
+2. **Validate social work exists and is active** before assigning to a patient
+3. **Use state management** instead of deleting patient records for data integrity
+4. **Keep contact information updated** to ensure effective patient communication
+5. **Filter by active state** when showing patients for appointment scheduling
+6. **Protect patient data** according to healthcare privacy regulations

@@ -1,0 +1,215 @@
+---
+title: 'Create patient'
+api: 'POST /patients'
+description: 'Create a new patient in the system'
+---
+
+## Authentication
+
+This endpoint requires a valid JWT token and administrator privileges.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication. Include as `Bearer <token>`.
+</ParamField>
+
+<Warning>
+  This endpoint requires administrator role. Users without admin privileges will receive a 403 Forbidden error.
+</Warning>
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Patient's first name. Cannot be empty.
+</ParamField>
+
+<ParamField body="surname" type="string" required>
+  Patient's last name. Cannot be empty.
+</ParamField>
+
+<ParamField body="dni" type="string" required>
+  Patient's national identification number (DNI). 
+  - Minimum 7 characters
+  - Must be unique in the system
+</ParamField>
+
+<ParamField body="birthdate" type="string" required>
+  Patient's date of birth. Should be in ISO 8601 format (YYYY-MM-DD).
+</ParamField>
+
+<ParamField body="gender" type="string" required>
+  Patient's gender.
+</ParamField>
+
+<ParamField body="address" type="string" required>
+  Patient's residential address. Cannot be empty.
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Patient's phone number.
+  - Must be between 10 and 20 characters
+  - Can only contain numbers, spaces, hyphens, or plus signs
+  - Pattern: `/^[0-9\s\-\+]*$/`
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Patient's email address. Must be a valid email format.
+</ParamField>
+
+<ParamField body="socialWorkId" type="number" required>
+  ID of the patient's social work. Must reference a valid social work that exists in the system.
+</ParamField>
+
+## Response
+
+<ResponseField name="patient" type="object">
+  The newly created patient object.
+  
+  <Expandable title="Patient properties">
+    <ResponseField name="id" type="number">
+      Unique patient identifier (auto-generated).
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Patient's first name.
+    </ResponseField>
+    
+    <ResponseField name="surname" type="string">
+      Patient's last name.
+    </ResponseField>
+    
+    <ResponseField name="dni" type="number">
+      Patient's national identification number (DNI).
+    </ResponseField>
+    
+    <ResponseField name="birthdate" type="string">
+      Patient's date of birth in ISO 8601 format.
+    </ResponseField>
+    
+    <ResponseField name="gender" type="string">
+      Patient's gender.
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Patient's residential address.
+    </ResponseField>
+    
+    <ResponseField name="phone" type="string">
+      Patient's phone number.
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      Patient's email address.
+    </ResponseField>
+    
+    <ResponseField name="socialWorkId" type="number">
+      ID of the patient's social work.
+    </ResponseField>
+    
+    <ResponseField name="state" type="string">
+      Patient's current state. Defaults to `Activo/a`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.clinica-vitalis.com/patients \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "María",
+    "surname": "González",
+    "dni": "12345678",
+    "birthdate": "1985-03-15",
+    "gender": "Femenino",
+    "address": "Av. Corrientes 1234, CABA",
+    "phone": "11-4567-8901",
+    "email": "maria.gonzalez@email.com",
+    "socialWorkId": 1
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "patient": {
+    "id": 1,
+    "name": "María",
+    "surname": "González",
+    "dni": 12345678,
+    "birthdate": "1985-03-15T00:00:00.000Z",
+    "gender": "Femenino",
+    "address": "Av. Corrientes 1234, CABA",
+    "phone": "11-4567-8901",
+    "email": "maria.gonzalez@email.com",
+    "socialWorkId": 1,
+    "state": "Activo/a"
+  }
+}
+```
+
+## Error Responses
+
+### 400 Bad Request
+
+Returned when validation fails for any field.
+
+```json
+{
+  "errors": [
+    {
+      "msg": "El nombre es obligatorio",
+      "param": "name"
+    }
+  ]
+}
+```
+
+Common validation errors:
+- `El nombre es obligatorio` - Name is required
+- `El apellido es obligatorio` - Surname is required
+- `El DNI es obligatorio` - DNI is required
+- `DNI no válido` - DNI must be at least 7 characters
+- `El DNI ya está registrado` - DNI already exists in the system
+- `La fecha de nacimiento es obligatoria` - Birthdate is required
+- `El genero es obligatorio` - Gender is required
+- `La dirección es obligatoria` - Address is required
+- `El teléfono es obligatorio` - Phone is required
+- `El teléfono debe tener entre 10 y 20 caracteres` - Phone must be 10-20 characters
+- `El teléfono solo puede contener números, guiones o espacios` - Invalid phone format
+- `El email es obligatorio` - Email is required
+- `El email no es válido` - Invalid email format
+- `La obra social es obligatoria` - Social work ID is required
+- `La obra social no existe` - Social work ID does not exist
+
+### 401 Unauthorized
+
+Returned when the JWT token is missing or invalid.
+
+```json
+{
+  "msg": "Token inválido"
+}
+```
+
+### 403 Forbidden
+
+Returned when the user does not have administrator privileges.
+
+```json
+{
+  "msg": "No tienes permisos de administrador"
+}
+```
+
+### 500 Internal Server Error
+
+Returned when a server error occurs.
+
+```json
+{
+  "msg": "Error del servidor"
+}
+```

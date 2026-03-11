@@ -1,0 +1,145 @@
+---
+title: "Get All Work Schedules"
+api: "GET /work_schedules"
+description: "Retrieve work schedules with optional filtering by professional or day of week"
+---
+
+## Authentication
+
+Requires a valid JWT token in the request header.
+
+## Query Parameters
+
+<ParamField query="professionalID" type="integer" optional>
+  Filter schedules by professional ID
+</ParamField>
+
+<ParamField query="dayOfWeek" type="integer" optional>
+  Filter schedules by day of the week
+  
+  - `0` = Sunday (Domingo)
+  - `1` = Monday (Lunes)
+  - `2` = Tuesday (Martes)
+  - `3` = Wednesday (Miércoles)
+  - `4` = Thursday (Jueves)
+  - `5` = Friday (Viernes)
+  - `6` = Saturday (Sábado)
+</ParamField>
+
+## Response
+
+<ResponseField name="schedules" type="array">
+  Array of work schedule objects
+  
+  <Expandable title="schedule properties">
+    <ResponseField name="id" type="integer">
+      Schedule unique identifier
+    </ResponseField>
+    
+    <ResponseField name="professionalID" type="integer">
+      ID of the professional
+    </ResponseField>
+    
+    <ResponseField name="dayOfWeek" type="integer">
+      Day of the week (0-6, where 0 = Sunday)
+    </ResponseField>
+    
+    <ResponseField name="startTime" type="string">
+      Start time in HH:MM format (e.g., "09:00")
+    </ResponseField>
+    
+    <ResponseField name="endTime" type="string">
+      End time in HH:MM format (e.g., "17:30")
+    </ResponseField>
+    
+    <ResponseField name="Professional" type="object">
+      Associated professional information
+      
+      <Expandable title="professional properties">
+        <ResponseField name="name" type="string">
+          Professional's first name
+        </ResponseField>
+        
+        <ResponseField name="surname" type="string">
+          Professional's last name
+        </ResponseField>
+        
+        <ResponseField name="dni" type="integer">
+          Professional's DNI (national ID)
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.clinicavitalis.com/work_schedules?professionalID=5&dayOfWeek=1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://api.clinicavitalis.com/work_schedules?professionalID=5&dayOfWeek=1',
+  {
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer YOUR_JWT_TOKEN'
+    }
+  }
+);
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "schedules": [
+    {
+      "id": 1,
+      "professionalID": 5,
+      "dayOfWeek": 1,
+      "startTime": "09:00",
+      "endTime": "17:30",
+      "Professional": {
+        "name": "María",
+        "surname": "González",
+        "dni": 12345678
+      }
+    },
+    {
+      "id": 2,
+      "professionalID": 5,
+      "dayOfWeek": 3,
+      "startTime": "08:00",
+      "endTime": "14:00",
+      "Professional": {
+        "name": "María",
+        "surname": "González",
+        "dni": 12345678
+      }
+    }
+  ]
+}
+```
+
+```json 404 - No Schedules Found
+{
+  "msg": "No se encontraron horarios con los filtros proporcionados"
+}
+```
+
+```json 500 - Server Error
+{
+  "msg": "Error del servidor"
+}
+```
+</ResponseExample>
+
+## Notes
+
+- Results are automatically sorted by `dayOfWeek` (ascending) and then by `startTime` (ascending)
+- If no filters are provided, all work schedules in the system are returned
+- Each professional can have only one schedule block per day of the week

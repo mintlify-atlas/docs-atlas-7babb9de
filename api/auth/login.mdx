@@ -1,0 +1,141 @@
+---
+title: 'Login User'
+api: 'POST /auth/login'
+description: 'Authenticate a user and receive a JWT token'
+---
+
+## Endpoint
+
+```
+POST /auth/login
+```
+
+## Authentication
+
+No authentication required. This is a public endpoint used to obtain authentication credentials.
+
+## Request Body
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be a valid email format and must exist in the system.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password. Must be at least 6 characters long and match the password associated with the email.
+</ParamField>
+
+## Request Example
+
+```json
+{
+  "email": "maria.gonzalez@example.com",
+  "password": "securePassword123"
+}
+```
+
+```bash
+curl -X POST https://api.clinicavitalis.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "maria.gonzalez@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+## Response
+
+### Success Response (200 OK)
+
+```json
+{
+  "name": "María",
+  "surname": "González",
+  "email": "maria.gonzalez@example.com",
+  "rol": "50yunUs3r",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIxIiwiaWF0IjoxNjE2MjM5MDIyfQ.4Adcj0bT_zNEvXHs6T8lRfXyXqL5L7X7FzYhQRZNaXk"
+}
+```
+
+<Note>
+  Store the JWT token securely on the client side. This token should be included in the Authorization header for subsequent authenticated requests.
+</Note>
+
+### Token Usage Example
+
+```bash
+curl -X GET https://api.clinicavitalis.com/api/protected-endpoint \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+### Error Responses
+
+#### 400 Bad Request - Validation Error
+
+Returned when validation fails for any required field or format.
+
+```json
+{
+  "errors": [
+    {
+      "msg": "El email es obligatorio",
+      "param": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+#### 400 Bad Request - Email Not Found
+
+Returned when the provided email does not exist in the system.
+
+```json
+{
+  "msg": "No se encontró el email"
+}
+```
+
+#### 401 Unauthorized - Incorrect Password
+
+Returned when the password does not match the email.
+
+```json
+{
+  "msg": "La contraseña es incorrecta"
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+  "msg": "Error en el servidor"
+}
+```
+
+## Validation Rules
+
+The following validations are enforced by express-validator:
+
+- **email**: Required, must be a valid email format
+- **password**: Required, minimum length of 6 characters
+
+<Warning>
+  Failed login attempts should be monitored and rate-limited on production environments to prevent brute force attacks.
+</Warning>
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| name | string | User's first name |
+| surname | string | User's last name |
+| email | string | User's email address |
+| rol | string | User's role (`50yunUs3r` for user, `50yun4dmin` for admin) |
+| token | string | JWT authentication token |
+
+## Security Notes
+
+- Passwords are hashed using bcrypt before storage and comparison
+- JWT tokens are generated with the user's ID and should be validated on protected endpoints
+- The token should be included in the `Authorization` header as a Bearer token for authenticated requests
